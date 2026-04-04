@@ -1,5 +1,6 @@
 package com.appdev.techlogic;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -52,11 +53,15 @@ public class MainActivity extends AppCompatActivity {
                     CardItem clicked = list.get(position);
                     Toast.makeText(this, "Clicked: " + clicked.title, Toast.LENGTH_SHORT).show();
 
-                    // TODO: Open new activity / edit card
+                    Intent intent = new Intent(MainActivity.this, DiagramActivity.class);
+                    intent.putExtra("card_title", clicked.title);
+                    startActivity(intent);
                 }
         );
 
         recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         recyclerView.setAdapter(adapter);
+
+
     }
 }
