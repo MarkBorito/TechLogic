@@ -1,5 +1,6 @@
 package com.appdev.techlogic;
 
+import android.text.method.CharacterPickerDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,12 +11,14 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private List<CardItem> list;
     private OnAddClickListener addListener;
     private OnCardClickListener cardListener;
+    Consumer<Integer> onCardClick;
 
     // Interface for Add button
     public interface OnAddClickListener {
@@ -56,12 +59,19 @@ public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-
         if (holder instanceof AddViewHolder) {
-            holder.itemView.setOnClickListener(v -> addListener.onAddClick());
-        } else {
+            // Handle Add Button Click
+            holder.itemView.setOnClickListener(v -> {
+                if (addListener != null) addListener.onAddClick();
+            });
+        } else if (holder instanceof CardViewHolder) {
+            // Handle Normal Card
             CardItem item = list.get(position);
-            ((CardViewHolder) holder).txtTitle.setText(item.title);
+            CardViewHolder cardHolder = (CardViewHolder) holder;
+            cardHolder.txtTitle.setText(item.title);
+
+            // The click listener is already handled in the CardViewHolder constructor!
+            // We don't need to set holder.itemView.setOnClickListener here again.
         }
     }
 

@@ -50,8 +50,15 @@ public class MainActivity extends AppCompatActivity {
                     recyclerView.scrollToPosition(0);
                 },
                 position -> { // Card click
+                    // Add this check to prevent IndexOutOfBounds
+                    if (position < 0 || position >= list.size()) return;
+
                     CardItem clicked = list.get(position);
-                    Toast.makeText(this, "Clicked: " + clicked.title, Toast.LENGTH_SHORT).show();
+
+                    if (clicked.isAddButton) return;
+
+                    // This Toast confirms the code is reaching this point
+                    Toast.makeText(this, "Opening: " + clicked.title, Toast.LENGTH_SHORT).show();
 
                     Intent intent = new Intent(MainActivity.this, DiagramActivity.class);
                     intent.putExtra("card_title", clicked.title);
