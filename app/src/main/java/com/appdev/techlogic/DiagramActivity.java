@@ -6,9 +6,12 @@ import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.GridLayoutManager;
+
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
 import java.util.ArrayList;
 
@@ -37,33 +40,49 @@ public class DiagramActivity extends AppCompatActivity {
 
         String title = getIntent().getStringExtra("card_title");
 
-// 🔷 Shape list
+// 🔷 Logic Gate list
         shapeList = new ArrayList<>();
-        shapeList.add(new ShapeItem("RECT"));
-        shapeList.add(new ShapeItem("CIRCLE"));
-        shapeList.add(new ShapeItem("AND"));
-        shapeList.add(new ShapeItem("OR"));
+        shapeList.add(new ShapeItem("AND", R.drawable.and));
+        shapeList.add(new ShapeItem("OR", R.drawable.or));
+        shapeList.add(new ShapeItem("NAND", R.drawable.nand));
+        shapeList.add(new ShapeItem("NOR", R.drawable.nor));
 
-// 🔷 Adapter
-        shapeAdapter = new ShapeAdapter(shapeList, type -> {
-            diagramView.addShape(type); // 🔥 send shape to canvas
+// 🔷 Adapter logic (No change needed here if you update addShape)
+        shapeAdapter = new ShapeAdapter(shapeList, item -> {
+            diagramView.addGate(item.getImageResId()); // Send the image ID to the canvas
         });
 
 // 🔷 RecyclerView setup
         toolRecycler.setLayoutManager(new GridLayoutManager(this, 2));
         toolRecycler.setAdapter(shapeAdapter);
 
-// 🔽 Expand / Collapse
+        // Initialize the BottonSheetBehavior
+        BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
+
+        // 2. Set the click listener to toggle states
         btnExpand.setOnClickListener(v -> {
-            if (isExpanded) {
-                bottomPanel.getLayoutParams().height = 120;
-                toolRecycler.setVisibility(View.GONE);
+            if (behavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+                behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             } else {
-                bottomPanel.getLayoutParams().height = 400;
-                toolRecycler.setVisibility(View.VISIBLE);
+                behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
             }
-            bottomPanel.requestLayout();
-            isExpanded = !isExpanded;
+        });
+
+        // 3. (Optional) Change the arrow icon when sliding
+        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    btnExpand.setImageResource(android.R.drawable.arrow_down_float); // Point down when open
+                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                    btnExpand.setImageResource(android.R.drawable.arrow_up_float);   // Point up when closed
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+                // You can animate things here while the user is dragging
+            }
         });
     }
 }

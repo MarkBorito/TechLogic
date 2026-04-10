@@ -1,39 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<!-- 1. Change root to CoordinatorLayout -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- 🔷 HEADER COMPONENT -->
-    <include
-        android:id="@+id/header"
-        layout="@layout/component_header"
-        app:layout_constraintTop_toTopOf="parent"/>
+    <!-- 🧠 DRAWING CANVAS (Background Content) -->
+    <!-- Note: We use ConstraintLayout here for the static parts -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-    <!-- 🧠 DRAWING CANVAS -->
-    <com.appdev.techlogic.DiagramView
-        android:id="@+id/diagramView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:background="#EEEEEE"
-        app:layout_constraintTop_toBottomOf="@id/header"
-        app:layout_constraintBottom_toTopOf="@id/bottomPanel"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <include
+            android:id="@+id/header"
+            layout="@layout/component_header"
+            app:layout_constraintTop_toTopOf="parent"/>
 
-    <!-- 🟩 BOTTOM PANEL -->
+        <com.appdev.techlogic.DiagramView
+            android:id="@+id/diagramView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="#EEEEEE"
+            app:layout_constraintTop_toBottomOf="@id/header"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 🟩 BOTTOM PANEL (The Draggable Sheet) -->
+    <!-- 2. Add layout_behavior and behavior_peekHeight -->
     <LinearLayout
         android:id="@+id/bottomPanel"
-        android:layout_width="0dp"
-        android:layout_height="120dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="#40C4C4"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+        app:behavior_peekHeight="40dp">
 
-        <!-- Toggle Arrow -->
+        <!-- Toggle Arrow (The Handle) -->
         <ImageView
             android:id="@+id/btnExpand"
             android:layout_width="match_parent"
@@ -44,10 +50,9 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/toolRecycler"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:visibility="gone"/>
+            android:layout_height="match_parent"
+            android:padding="8dp" />
 
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

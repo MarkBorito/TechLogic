@@ -1,9 +1,17 @@
 package com.appdev.techlogic;
 
 public class ShapeItem {
-    public String type;
+    private String name;
+    private int imageResId; // The ID of the drawable (e.g., R.drawable.and)
 
-    public ShapeItem(String type) {
-        this.type = type;
+    public ShapeItem(String name, int imageResId) {
+        this.name = name;
+        this.imageResId = imageResId;
     }
+
+    public String getName() { return name; }
+    public int getImageResId() { return imageResId; }
+
+
 }
+

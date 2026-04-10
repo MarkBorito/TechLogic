@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="80dp"
-    android:layout_height="80dp"
-    android:layout_margin="8dp"
-    android:radius="8dp"
-    android:elevation="4dp">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:gravity="center">
 
+    <!-- 1. CHECK THIS ID: Must be @+id/imgTool -->
+    <ImageView
+        android:id="@+id/imgTool"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/and" /> <!-- placeholder -->
+
+    <!-- 2. CHECK THIS ID: Must be @+id/txtTool -->
     <TextView
         android:id="@+id/txtTool"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="RECT"
-        android:textSize="12sp"/>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Gate Name"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp" />
 
-</androidx.cardview.widget.CardView>
+</LinearLayout>
