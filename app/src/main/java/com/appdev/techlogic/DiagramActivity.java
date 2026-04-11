@@ -59,7 +59,7 @@ public class DiagramActivity extends AppCompatActivity {
                 bottomPanel.getLayoutParams().height = 120;
                 toolRecycler.setVisibility(View.GONE);
             } else {
-                bottomPanel.getLayoutParams().height = 400;
+                bottomPanel.getLayoutParams().height = 800;
                 toolRecycler.setVisibility(View.VISIBLE);
             }
             bottomPanel.requestLayout();
