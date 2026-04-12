@@ -9,7 +9,9 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -17,7 +19,6 @@ public class MainActivity extends AppCompatActivity {
     CardAdapter adapter;
     List<CardItem> list;
     DatabaseHelper db;
-    int counter = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,12 +35,9 @@ public class MainActivity extends AppCompatActivity {
         List<CardItem> savedCards = db.getAllCards();
         list.addAll(savedCards);
 
-        // Update counter so new card titles are unique
-        counter = savedCards.size() + 1;
-
         adapter = new CardAdapter(list,
                 () -> { // Add button click
-                    String newTitle = "Card " + counter++;
+                    String newTitle = generateUniqueTitle();
 
                     // Save to SQLite
                     db.insertCard(newTitle);
@@ -68,7 +66,40 @@ public class MainActivity extends AppCompatActivity {
 
         recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         recyclerView.setAdapter(adapter);
+    }
 
+    private String generateUniqueTitle() {
+        Set<String> existingTitles = new HashSet<>();
+        for (CardItem item : list) {
+            if (!item.isAddButton) {
+                existingTitles.add(item.title);
+            }
+        }
 
+        int i = 1;
+        while (true) {
+            String candidate = "Card " + i;
+            if (!existingTitles.contains(candidate)) {
+                return candidate;
+            }
+            i++;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh the list when coming back from DiagramActivity (in case of delete)
+        refreshList();
+    }
+
+    private void refreshList() {
+        list.clear();
+        list.add(new CardItem("", true));
+        List<CardItem> savedCards = db.getAllCards();
+        list.addAll(savedCards);
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
     }
 }

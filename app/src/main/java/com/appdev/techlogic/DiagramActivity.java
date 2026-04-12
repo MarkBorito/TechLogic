@@ -5,8 +5,12 @@ import android.view.View;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -25,7 +29,10 @@ public class DiagramActivity extends AppCompatActivity {
     DiagramView diagramView;
     LinearLayout bottomPanel;
     ImageView btnExpand;
-    boolean isExpanded = false;
+    ImageView btnMenu;
+    TextView txtTitle;
+    DatabaseHelper dbHelper;
+    String currentCardTitle;
 
 
     @Override
@@ -33,12 +40,24 @@ public class DiagramActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_diagram);
 
+        dbHelper = new DatabaseHelper(this);
+        currentCardTitle = getIntent().getStringExtra("card_title");
+
         toolRecycler = findViewById(R.id.toolRecycler);
         bottomPanel = findViewById(R.id.bottomPanel);
         btnExpand = findViewById(R.id.btnExpand);
         diagramView = findViewById(R.id.diagramView);
+        btnMenu = findViewById(R.id.btnMenu);
+        txtTitle = findViewById(R.id.txtTitle);
 
-        String title = getIntent().getStringExtra("card_title");
+        // Set the header title to match the card name
+        if (currentCardTitle != null) {
+            txtTitle.setText(currentCardTitle);
+            dbHelper.loadDiagram(currentCardTitle, diagramView);
+        }
+
+        // Set up the menu button
+        btnMenu.setOnClickListener(v -> showPopupMenu(v));
 
 // 🔷 Logic Gate list
         shapeList = new ArrayList<>();
@@ -47,9 +66,9 @@ public class DiagramActivity extends AppCompatActivity {
         shapeList.add(new ShapeItem("NAND", R.drawable.nand));
         shapeList.add(new ShapeItem("NOR", R.drawable.nor));
 
-// 🔷 Adapter logic (No change needed here if you update addShape)
+// 🔷 Adapter logic
         shapeAdapter = new ShapeAdapter(shapeList, item -> {
-            diagramView.addGate(item.getImageResId()); // Send the image ID to the canvas
+            diagramView.addGate(item.getImageResId());
         });
 
 // 🔷 RecyclerView setup
@@ -59,7 +78,7 @@ public class DiagramActivity extends AppCompatActivity {
         // Initialize the BottonSheetBehavior
         BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
 
-        // 2. Set the click listener to toggle states
+        // Set the click listener to toggle states
         btnExpand.setOnClickListener(v -> {
             if (behavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
@@ -68,21 +87,62 @@ public class DiagramActivity extends AppCompatActivity {
             }
         });
 
-        // 3. (Optional) Change the arrow icon when sliding
         behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
             public void onStateChanged(@NonNull View bottomSheet, int newState) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    btnExpand.setImageResource(android.R.drawable.arrow_down_float); // Point down when open
+                    btnExpand.setImageResource(android.R.drawable.arrow_down_float);
                 } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    btnExpand.setImageResource(android.R.drawable.arrow_up_float);   // Point up when closed
+                    btnExpand.setImageResource(android.R.drawable.arrow_up_float);
                 }
             }
 
             @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-                // You can animate things here while the user is dragging
-            }
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
         });
+    }
+
+    private void showPopupMenu(View view) {
+        PopupMenu popup = new PopupMenu(this, view);
+        popup.getMenuInflater().inflate(R.menu.diagram_menu, popup.getMenu());
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.action_save) {
+                saveCurrentDiagram();
+                return true;
+            } else if (id == R.id.action_delete) {
+                confirmDelete();
+                return true;
+            } else if (id == R.id.action_back) {
+                finish();
+                return true;
+            }
+            return false;
+        });
+        popup.show();
+    }
+
+    private void saveCurrentDiagram() {
+        if (currentCardTitle != null) {
+            dbHelper.saveDiagram(currentCardTitle, diagramView.getGates(), diagramView.getConnections());
+            Toast.makeText(this, "Diagram saved successfully!", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Error: No project title found.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void confirmDelete() {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Project")
+                .setMessage("Are you sure you want to delete this project? This will remove all gates and connections.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    if (currentCardTitle != null) {
+                        dbHelper.deleteCard(currentCardTitle);
+                        Toast.makeText(this, "Project deleted.", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }
