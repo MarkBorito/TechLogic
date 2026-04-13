@@ -3,6 +3,7 @@ package com.appdev.techlogic;
 import android.content.ContentValues;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.drawable.shapes.Shape;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Bundle;
@@ -44,6 +45,7 @@ public class DiagramActivity extends AppCompatActivity {
     List<ShapeItem> gateList;
     List<ShapeItem> resistorList;
     List<ShapeItem> diodeList;
+    List<ShapeItem> labelList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +84,20 @@ public class DiagramActivity extends AppCompatActivity {
                     })
                     .show();
         });
+        diagramView.setOnTextDoubleClickListener(textItem -> {
+            showEditLabelDialog(textItem);
+        });
+        // Inside onCreate, update the LongClickListener logic
+        diagramView.setOnTextLongClickListener(textItem -> {
+            String[] options = {"Edit Text", "Resize", "Delete"};
+            new AlertDialog.Builder(this)
+                    .setTitle("Label Options")
+                    .setItems(options, (dialog, which) -> {
+                        if (which == 0) showEditLabelDialog(textItem);
+                        else if (which == 1) showTextResizeDialog(textItem);
+                        else if (which == 2) diagramView.removeText(textItem);
+                    }).show();
+        });
 
         btnMenu.setOnClickListener(v -> showPopupMenu(v));
         txtTitle.setOnLongClickListener(v -> {
@@ -89,6 +105,53 @@ public class DiagramActivity extends AppCompatActivity {
             return true;
         });
         setupBottomSheet();
+    }
+
+    private void showEditLabelDialog(DiagramView.TextInstance textItem) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Edit Text");
+
+        final EditText input = new EditText(this);
+        input.setText(textItem.text);
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", (dialog, which) -> {
+            textItem.text = input.getText().toString();
+            diagramView.invalidate();
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+    private void showTextResizeDialog(DiagramView.TextInstance textItem) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Resize Text");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setPadding(50, 40, 50, 40);
+        final android.widget.SeekBar seekBar = new android.widget.SeekBar(this);
+
+        // Text scale usually starts at 1.0. Let's allow 0.5x to 5.0x
+        seekBar.setMax(500);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            seekBar.setMin(50);
+        }
+        seekBar.setProgress((int)(textItem.scale * 100));
+
+        layout.addView(seekBar, new LinearLayout.LayoutParams(-1, -2));
+        builder.setView(layout);
+
+        seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar sb, int progress, boolean fromUser) {
+                textItem.scale = progress / 100.0f;
+                diagramView.invalidate();
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar sb) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar sb) {}
+        });
+
+        builder.setPositiveButton("Done", (dialog, which) -> dialog.dismiss());
+        builder.show();
     }
 
     private void showResizeDialog(DiagramView.GateInstance gate) {
@@ -103,9 +166,9 @@ public class DiagramActivity extends AppCompatActivity {
         // Scale from 0.5x to 2.5x (represented as 50 to 250)
         seekBar.setMax(250);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            seekBar.setMin(50);
+            seekBar.setMin(10);
         }
-        seekBar.setProgress((int)(gate.scale * 100));
+        seekBar.setProgress((int)(gate.scale * 1000));
 
         layout.addView(seekBar, new LinearLayout.LayoutParams(-1, -2));
         builder.setView(layout);
@@ -113,7 +176,7 @@ public class DiagramActivity extends AppCompatActivity {
         seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(android.widget.SeekBar sb, int progress, boolean fromUser) {
-                gate.scale = progress / 100.0f;
+                gate.scale = progress / 1000.0f;
                 diagramView.invalidate(); // Force redraw the canvas with new scale
             }
             @Override
@@ -132,6 +195,7 @@ public class DiagramActivity extends AppCompatActivity {
             categoryList.add(new ShapeItem("Logic Gates", R.drawable.gate_category, true));
             categoryList.add(new ShapeItem("Resistors", R.drawable.resistors_category, true));
             categoryList.add(new ShapeItem("Diodes", R.drawable.diode_category, true));
+            categoryList.add(new ShapeItem("Labels", R.drawable.text, true));
             // 2. Create the Sub-components (Logic Gates)
             gateList = new ArrayList<>();
             gateList.add(new ShapeItem("AND", R.drawable.gate_and, false));
@@ -157,6 +221,10 @@ public class DiagramActivity extends AppCompatActivity {
             diodeList.add(new ShapeItem("Fast/Schottky Diode", R.drawable.diode_fast, false));
             diodeList.add(new ShapeItem("Zener Diode", R.drawable.diode_zener, false));
             diodeList.add(new ShapeItem("Light Emitting Diode", R.drawable.diode_led, false));
+
+            labelList = new ArrayList<>();
+            labelList.add(new ShapeItem("Add Label", R.drawable.text, false));
+
         }
         private void setupLibrary() {
             initializeComponentData();
@@ -171,15 +239,21 @@ public class DiagramActivity extends AppCompatActivity {
                         shapeAdapter.updateList(resistorList);
                     } else if (item.getName().equals("Diodes")) {
                         shapeAdapter.updateList(diodeList);
+                    } else if (item.getName().equals("Labels")) { // ADD THIS
+                        shapeAdapter.updateList(labelList);
                     }
+                    btnBackToCategories.setVisibility(View.VISIBLE);
+                    panelTitle.setText(item.getName());
+
                     // Add a "Back" button functionality or button UI here if desired
                     btnBackToCategories.setVisibility(View.VISIBLE);
                     panelTitle.setText(item.getName());
                 } else {
-                    // IF USER CLICKS AN ACTUAL COMPONENT: Add to diagram
-                    diagramView.addGate(item.getImageResId());
-                    // Optionally close panel
-                    // bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                    if (item.getName().equals("Add Label")) {
+                        diagramView.addText("Text!");
+                    } else {
+                        diagramView.addGate(item.getImageResId());
+                    }
                 }
             });
             toolRecycler.setAdapter(shapeAdapter);

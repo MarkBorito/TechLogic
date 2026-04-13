@@ -40,9 +40,12 @@ public class DiagramView extends View {
     private float mCurrentX;
     private float mCurrentY;
     private int mActivePointerId = -1;
-
     private GateInstance mSelectedGate = null;
     private GateInstance connectionStartGate = null;
+    private List<TextInstance> texts = new ArrayList<>();
+    private TextInstance mSelectedText = null;
+    private OnTextLongClickListener textLongClickListener;
+    private OnTextDoubleClickListener textDoubleClickListener;
 
     public DiagramView(Context context) {
         super(context);
@@ -92,6 +95,17 @@ public class DiagramView extends View {
             public void onLongPress(MotionEvent e) {
                 float diagramX = (e.getX() - mPosX) / mScaleFactor;
                 float diagramY = (e.getY() - mPosY) / mScaleFactor;
+                TextInstance clickedText = findTextAt(diagramX, diagramY);
+                if (clickedText != null) {
+                    if (textLongClickListener != null) {
+                        textLongClickListener.onTextLongClick(clickedText);
+                    }
+                } else {
+                    GateInstance gate = findGateAt(diagramX, diagramY);
+                    if (gate != null && longClickListener != null) {
+                        longClickListener.onLongClick(gate);
+                    }
+                }
 
                 // Check for gate first
                 GateInstance gate = findGateAt(diagramX, diagramY);
@@ -106,8 +120,25 @@ public class DiagramView extends View {
                     invalidate();
                 }
             }
+            public boolean onDoubleTap(MotionEvent e) {
+                float diagramX = (e.getX() - mPosX) / mScaleFactor;
+                float diagramY = (e.getY() - mPosY) / mScaleFactor;
+
+                for (TextInstance t : texts) {
+                    if (diagramX >= t.x && diagramX <= t.x + 200 && diagramY >= t.y - 50 && diagramY <= t.y) {
+                        if (textDoubleClickListener != null) {
+                            textDoubleClickListener.onTextDoubleClick(t);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
         });
+
     }
+
+
 
     // Correct method signature in DiagramView.java
     public void removeGate(GateInstance gate) {
@@ -157,7 +188,9 @@ public class DiagramView extends View {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
         float centerX = (getWidth() / 2f - mPosX) / mScaleFactor;
         float centerY = (getHeight() / 2f - mPosY) / mScaleFactor;
-        gates.add(new GateInstance(bitmap, centerX, centerY, resId));
+        GateInstance newGate = new GateInstance(bitmap, centerX, centerY, resId);
+        newGate.scale = 0.0625f;
+        gates.add(newGate);
         invalidate();
     }
 
@@ -267,6 +300,18 @@ public class DiagramView extends View {
                 mCurrentX = diagramX;
                 mCurrentY = diagramY;
                 mSelectedGate = findGateAt(diagramX, diagramY);
+                mSelectedText = findTextAt(diagramX, diagramY);
+                if (mSelectedText == null) {
+                    mSelectedGate = findGateAt(diagramX, diagramY);
+                }
+                if (mSelectedGate == null) {
+                    for (TextInstance t : texts) {
+                        if (diagramX >= t.x && diagramX <= t.x + 200 && diagramY >= t.y - 50 && diagramY <= t.y) {
+                            mSelectedText = t; // You'll need to declare 'private TextInstance mSelectedText' at the top
+                            break;
+                        }
+                    }
+                }
                 invalidate();
                 break;
             }
@@ -284,7 +329,11 @@ public class DiagramView extends View {
                         if (mSelectedGate != null) {
                             mSelectedGate.x += dx / mScaleFactor;
                             mSelectedGate.y += dy / mScaleFactor;
-                        } else {
+                        } else if (mSelectedText != null) { // Add this
+                            mSelectedText.x += dx / mScaleFactor;
+                            mSelectedText.y += dy / mScaleFactor;
+                        }  else if (!mScaleDetector.isInProgress()) {
+                            // Pan the canvas
                             mPosX += dx;
                             mPosY += dy;
                         }
@@ -318,6 +367,7 @@ public class DiagramView extends View {
                 }
                 mActivePointerId = -1;
                 mSelectedGate = null;
+                mSelectedText = null;
                 performClick();
                 invalidate();
                 break;
@@ -419,6 +469,10 @@ public class DiagramView extends View {
                 canvas.drawRect(destRect, selectedPaint);
             }
         }
+        for (TextInstance t : texts) {
+            t.paint.setTextSize(50f * t.scale);
+            canvas.drawText(t.text, t.x, t.y, t.paint);
+        }
         canvas.restore();
     }
 
@@ -494,5 +548,53 @@ public class DiagramView extends View {
             this.start = start;
             this.end = end;
         }
+    }
+    public static class TextInstance {
+        public String text;
+        public float x, y;
+        public float scale = 1.0f;
+        public Paint paint;
+
+        public TextInstance(String text, float x, float y) {
+            this.text = text;
+            this.x = x;
+            this.y = y;
+            this.paint = new Paint();
+            this.paint.setColor(Color.BLACK);
+            this.paint.setTextSize(50f); // Base size
+            this.paint.setAntiAlias(true);
+        }
+    }
+    public interface OnTextDoubleClickListener {
+        void onTextDoubleClick(TextInstance text);
+    }
+    public interface OnTextLongClickListener {
+        void onTextLongClick(TextInstance text);
+    }
+    public void setOnTextDoubleClickListener(OnTextDoubleClickListener listener) {
+        this.textDoubleClickListener = listener;
+    }
+    public void setOnTextLongClickListener(OnTextLongClickListener listener) {
+        this.textLongClickListener = listener;
+    }
+    public void addText(String content) {
+        float centerX = (getWidth() / 2f - mPosX) / mScaleFactor;
+        float centerY = (getHeight() / 2f - mPosY) / mScaleFactor;
+        texts.add(new TextInstance(content, centerX, centerY));
+        invalidate();
+    }
+    public void removeText(TextInstance text) {
+        texts.remove(text);
+        invalidate();
+    }
+    private TextInstance findTextAt(float x, float y) {
+        for (TextInstance t : texts) {
+            // We create a bounding box:
+            // Left: t.x, Right: t.x + 300 (approx), Top: t.y - 60, Bottom: t.y + 20
+            if (x >= t.x && x <= t.x + 300 && y >= t.y - 60 && y <= t.y + 20) {
+                return t;
+            }
+        }
+        return null;
     }
 }
