@@ -43,6 +43,7 @@ public class DiagramActivity extends AppCompatActivity {
     List<ShapeItem> categoryList;
     List<ShapeItem> gateList;
     List<ShapeItem> ledList;
+    List<ShapeItem> resistorList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -128,21 +129,29 @@ public class DiagramActivity extends AppCompatActivity {
         private void initializeComponentData() {
         // 1. Create the Main Categories
             categoryList = new ArrayList<>();
-            categoryList.add(new ShapeItem("Logic Gates", R.drawable.gates, true));
-            categoryList.add(new ShapeItem("LEDs", R.drawable.led, true));
+            categoryList.add(new ShapeItem("Logic Gates", R.drawable.gate_category, true));
+            categoryList.add(new ShapeItem("LEDs", R.drawable.led_category, true));
+            categoryList.add(new ShapeItem("Resistors", R.drawable.resistors_category, true));
             // 2. Create the Sub-components (Logic Gates)
             gateList = new ArrayList<>();
-            gateList.add(new ShapeItem("AND", R.drawable.and, false));
-            gateList.add(new ShapeItem("OR", R.drawable.or, false));
-            gateList.add(new ShapeItem("NAND", R.drawable.nand, false));
-            gateList.add(new ShapeItem("NOR", R.drawable.nor, false));
-            gateList.add(new ShapeItem("XOR", R.drawable.xor, false));
-            gateList.add(new ShapeItem("NOT", R.drawable.not, false));
+            gateList.add(new ShapeItem("AND", R.drawable.gate_and, false));
+            gateList.add(new ShapeItem("OR", R.drawable.gate_or, false));
+            gateList.add(new ShapeItem("NAND", R.drawable.gate_nand, false));
+            gateList.add(new ShapeItem("NOR", R.drawable.gate_nor, false));
+            gateList.add(new ShapeItem("XOR", R.drawable.gate_xor, false));
+            gateList.add(new ShapeItem("NOT", R.drawable.gate_not, false));
+            gateList.add(new ShapeItem("XNOR", R.drawable.gate_xnor, false));
             // ... add all your gates here
 
             // 3. Create the Sub-components (LEDs)
             ledList = new ArrayList<>();
-            ledList.add(new ShapeItem("Red LED", R.drawable.led, false));
+            ledList.add(new ShapeItem("White LED", R.drawable.led_white, false));
+            ledList.add(new ShapeItem("Black LED", R.drawable.led_black, false));
+            ledList.add(new ShapeItem("Red LED", R.drawable.led_red, false));
+            ledList.add(new ShapeItem("Blue LED", R.drawable.led_blue, false));
+            ledList.add(new ShapeItem("3 pin LED", R.drawable.led_3foot, false));
+
+            resistorList = new ArrayList<>();
         }
         private void setupLibrary() {
             initializeComponentData();
@@ -155,6 +164,8 @@ public class DiagramActivity extends AppCompatActivity {
                         shapeAdapter.updateList(gateList);
                     } else if (item.getName().equals("LEDs")) {
                         shapeAdapter.updateList(ledList);
+                    } else if (item.getName().equals("Resistors")) {
+                        shapeAdapter.updateList(resistorList);
                     }
                     // Add a "Back" button functionality or button UI here if desired
                     btnBackToCategories.setVisibility(View.VISIBLE);

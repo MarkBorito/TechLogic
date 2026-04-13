@@ -12,7 +12,7 @@
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:scaleType="fitCenter"
-        android:src="@drawable/and" /> <!-- placeholder -->
+        android:src="@drawable/gate_and" /> <!-- placeholder -->
 
     <!-- 2. CHECK THIS ID: Must be @+id/txtTool -->
     <TextView
