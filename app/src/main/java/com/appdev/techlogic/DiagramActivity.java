@@ -42,8 +42,8 @@ public class DiagramActivity extends AppCompatActivity {
     String currentCardTitle;
     List<ShapeItem> categoryList;
     List<ShapeItem> gateList;
-    List<ShapeItem> ledList;
     List<ShapeItem> resistorList;
+    List<ShapeItem> diodeList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,8 +130,8 @@ public class DiagramActivity extends AppCompatActivity {
         // 1. Create the Main Categories
             categoryList = new ArrayList<>();
             categoryList.add(new ShapeItem("Logic Gates", R.drawable.gate_category, true));
-            categoryList.add(new ShapeItem("LEDs", R.drawable.led_category, true));
             categoryList.add(new ShapeItem("Resistors", R.drawable.resistors_category, true));
+            categoryList.add(new ShapeItem("Diodes", R.drawable.diode_category, true));
             // 2. Create the Sub-components (Logic Gates)
             gateList = new ArrayList<>();
             gateList.add(new ShapeItem("AND", R.drawable.gate_and, false));
@@ -143,15 +143,20 @@ public class DiagramActivity extends AppCompatActivity {
             gateList.add(new ShapeItem("XNOR", R.drawable.gate_xnor, false));
             // ... add all your gates here
 
-            // 3. Create the Sub-components (LEDs)
-            ledList = new ArrayList<>();
-            ledList.add(new ShapeItem("White LED", R.drawable.led_white, false));
-            ledList.add(new ShapeItem("Black LED", R.drawable.led_black, false));
-            ledList.add(new ShapeItem("Red LED", R.drawable.led_red, false));
-            ledList.add(new ShapeItem("Blue LED", R.drawable.led_blue, false));
-            ledList.add(new ShapeItem("3 pin LED", R.drawable.led_3foot, false));
-
             resistorList = new ArrayList<>();
+            resistorList.add(new ShapeItem("220 Resistor", R.drawable.resistors_category, false));
+            resistorList.add(new ShapeItem("330 Resistor", R.drawable.resistors_category, false));
+            resistorList.add(new ShapeItem("470 Resistor", R.drawable.resistors_category, false));
+            resistorList.add(new ShapeItem("1000 Resistor", R.drawable.resistors_category, false));
+            resistorList.add(new ShapeItem("2200 Resistor", R.drawable.resistors_category, false));
+            resistorList.add(new ShapeItem("4700 Resistor", R.drawable.resistors_category, false));
+            resistorList.add(new ShapeItem("10000 Resistor", R.drawable.resistors_category, false));
+
+            diodeList = new ArrayList<>();
+            diodeList.add(new ShapeItem("Standard Diode", R.drawable.diode_category, false));
+            diodeList.add(new ShapeItem("Fast/Schottky Diode", R.drawable.diode_fast, false));
+            diodeList.add(new ShapeItem("Zener Diode", R.drawable.diode_zener, false));
+            diodeList.add(new ShapeItem("Light Emitting Diode", R.drawable.diode_led, false));
         }
         private void setupLibrary() {
             initializeComponentData();
@@ -162,10 +167,10 @@ public class DiagramActivity extends AppCompatActivity {
                     // IF USER CLICKS A CATEGORY: Switch the list
                     if (item.getName().equals("Logic Gates")) {
                         shapeAdapter.updateList(gateList);
-                    } else if (item.getName().equals("LEDs")) {
-                        shapeAdapter.updateList(ledList);
                     } else if (item.getName().equals("Resistors")) {
                         shapeAdapter.updateList(resistorList);
+                    } else if (item.getName().equals("Diodes")) {
+                        shapeAdapter.updateList(diodeList);
                     }
                     // Add a "Back" button functionality or button UI here if desired
                     btnBackToCategories.setVisibility(View.VISIBLE);
