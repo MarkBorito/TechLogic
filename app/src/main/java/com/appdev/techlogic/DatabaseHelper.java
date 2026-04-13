@@ -26,6 +26,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_GATE_RES_ID = "res_id";
     private static final String COLUMN_GATE_X = "x";
     private static final String COLUMN_GATE_Y = "y";
+    private static final String COLUMN_GATE_SCALE = "scale";
 
     // Connections table (New)
     private static final String TABLE_CONNECTIONS = "connections";
@@ -50,7 +51,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + COLUMN_GATE_CARD_TITLE + " TEXT,"
                 + COLUMN_GATE_RES_ID + " INTEGER,"
                 + COLUMN_GATE_X + " REAL,"
-                + COLUMN_GATE_Y + " REAL)";
+                + COLUMN_GATE_Y + " REAL,"
+                + COLUMN_GATE_SCALE + " REAL)";
         db.execSQL(CREATE_GATES_TABLE);
 
         String CREATE_CONNECTIONS_TABLE = "CREATE TABLE " + TABLE_CONNECTIONS + "("
@@ -81,6 +83,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     + COLUMN_START_GATE_INDEX + " INTEGER,"
                     + COLUMN_END_GATE_INDEX + " INTEGER)";
             db.execSQL(CREATE_CONNECTIONS_TABLE);
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE " + TABLE_GATES + " ADD COLUMN " + COLUMN_GATE_SCALE + " REAL DEFAULT 1.0");
         }
     }
 
@@ -160,6 +165,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 values.put(COLUMN_GATE_RES_ID, gate.resId);
                 values.put(COLUMN_GATE_X, gate.x);
                 values.put(COLUMN_GATE_Y, gate.y);
+                values.put(COLUMN_GATE_SCALE, gate.scale);
                 db.insert(TABLE_GATES, null, values);
             }
 
@@ -195,9 +201,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 int resId = gateCursor.getInt(gateCursor.getColumnIndexOrThrow(COLUMN_GATE_RES_ID));
                 float x = gateCursor.getFloat(gateCursor.getColumnIndexOrThrow(COLUMN_GATE_X));
                 float y = gateCursor.getFloat(gateCursor.getColumnIndexOrThrow(COLUMN_GATE_Y));
-                
+                float scale = gateCursor.getFloat(gateCursor.getColumnIndexOrThrow(COLUMN_GATE_SCALE));
+
+
                 // Use a modified GateInstance constructor or setter that accepts resId
-                gates.add(diagramView.createGateFromLoad(resId, x, y));
+                gates.add(diagramView.createGateFromLoad(resId, x, y, scale));
             } while (gateCursor.moveToNext());
         }
         gateCursor.close();

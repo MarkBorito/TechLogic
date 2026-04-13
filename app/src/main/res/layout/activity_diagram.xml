@@ -39,13 +39,36 @@
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
         app:behavior_peekHeight="40dp">
 
-        <!-- Toggle Arrow (The Handle) -->
-        <ImageView
-            android:id="@+id/btnExpand"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:src="@android:drawable/arrow_up_float"
-            android:scaleType="center"/>
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="10dp">
+
+            <ImageView
+                android:id="@+id/btnBackToCategories"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/back"
+                android:visibility="gone" /> <!-- Hidden by default -->
+
+            <TextView
+                android:id="@+id/panelTitle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Categories"
+                android:textSize="18sp"
+                android:layout_marginStart="10dp"/>
+
+            <ImageView
+                android:id="@+id/btnExpand"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@android:drawable/arrow_up_float" />
+        </LinearLayout>
+        <!-- Toggle Arrow (The Handle) -->
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/toolRecycler"
@@ -54,5 +77,6 @@
             android:padding="8dp" />
 
     </LinearLayout>
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

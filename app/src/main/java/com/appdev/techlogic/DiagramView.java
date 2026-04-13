@@ -54,6 +54,14 @@ public class DiagramView extends View {
         init(context);
     }
 
+    public interface OnGateLongClickListener {
+        void onLongClick(GateInstance gate);
+    }
+    private OnGateLongClickListener longClickListener;
+    public void setOnGateLongClickListener(OnGateLongClickListener listener) {
+        this.longClickListener = listener;
+    }
+
     private void init(Context context) {
         gridPaint = new Paint();
         gridPaint.setColor(Color.LTGRAY);
@@ -87,10 +95,8 @@ public class DiagramView extends View {
 
                 // Check for gate first
                 GateInstance gate = findGateAt(diagramX, diagramY);
-                if (gate != null) {
-                    removeGate(gate);
-                    mSelectedGate = null;
-                    return;
+                if (gate != null && longClickListener != null) {
+                    longClickListener.onLongClick(gate);
                 }
 
                 // Then check for connections
@@ -103,7 +109,8 @@ public class DiagramView extends View {
         });
     }
 
-    private void removeGate(GateInstance gate) {
+    // Correct method signature in DiagramView.java
+    public void removeGate(GateInstance gate) {
         gates.remove(gate);
         Iterator<Connection> it = connections.iterator();
         while (it.hasNext()) {
@@ -119,16 +126,18 @@ public class DiagramView extends View {
     private Connection findConnectionAt(float x, float y) {
         float threshold = 30 / mScaleFactor;
         for (Connection conn : connections) {
-            float x1 = conn.start.x - 100 + conn.start.bitmap.getWidth();
-            float y1 = conn.start.y - 100 + conn.start.bitmap.getHeight() / 2f;
+            // Update these to match the scaled edges used in onDraw
+            float x1 = conn.start.x - 100 + (conn.start.bitmap.getWidth() * conn.start.scale);
+            float y1 = conn.start.y - 100 + (conn.start.bitmap.getHeight() * conn.start.scale / 2f);
+
             float x2 = conn.end.x - 100;
-            float y2 = conn.end.y - 100 + conn.end.bitmap.getHeight() / 2f;
+            float y2 = conn.end.y - 100 + (conn.end.bitmap.getHeight() * conn.end.scale / 2f);
 
             float midX = (x1 + x2) / 2;
 
             if (distToSegment(x, y, x1, y1, midX, y1) < threshold ||
-                distToSegment(x, y, midX, y1, midX, y2) < threshold ||
-                distToSegment(x, y, midX, y2, x2, y2) < threshold) {
+                    distToSegment(x, y, midX, y1, midX, y2) < threshold ||
+                    distToSegment(x, y, midX, y2, x2, y2) < threshold) {
                 return conn;
             }
         }
@@ -152,9 +161,11 @@ public class DiagramView extends View {
         invalidate();
     }
 
-    public GateInstance createGateFromLoad(int resId, float x, float y) {
+    public GateInstance createGateFromLoad(int resId, float x, float y, float scale) {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
-        return new GateInstance(bitmap, x, y, resId);
+        GateInstance gate = new GateInstance(bitmap, x, y, resId);
+        gate.scale = scale; // Set the saved scale
+        return gate;
     }
 
     public void setLoadedData(List<GateInstance> gates, List<Connection> connections) {
@@ -177,8 +188,8 @@ public class DiagramView extends View {
         for (GateInstance gate : gates) {
             float left = gate.x - 100;
             float top = gate.y - 100;
-            float right = left + gate.bitmap.getWidth();
-            float bottom = top + gate.bitmap.getHeight();
+            float right = left + (gate.bitmap.getWidth() * gate.scale);
+            float bottom = top + (gate.bitmap.getHeight() * gate.scale);
 
             if (left < minX) minX = left;
             if (top < minY) minY = top;
@@ -197,16 +208,21 @@ public class DiagramView extends View {
 
         // Draw connections
         for (Connection conn : connections) {
-            float x1 = conn.start.x - 100 + conn.start.bitmap.getWidth();
-            float y1 = conn.start.y - 100 + conn.start.bitmap.getHeight() / 2f;
+            float x1 = conn.start.x - 100 + (conn.start.bitmap.getWidth() * conn.start.scale);
+            float y1 = conn.start.y - 100 + (conn.start.bitmap.getHeight() * conn.start.scale / 2f);
             float x2 = conn.end.x - 100;
-            float y2 = conn.end.y - 100 + conn.end.bitmap.getHeight() / 2f;
+            float y2 = conn.end.y - 100 + (conn.end.bitmap.getHeight() * conn.end.scale / 2f);
             drawOrthogonalLine(canvas, x1, y1, x2, y2, linePaint);
         }
 
         // Draw gates
         for (GateInstance gate : gates) {
-            canvas.drawBitmap(gate.bitmap, gate.x - 100, gate.y - 100, null);
+            float scaledW = gate.bitmap.getWidth() * gate.scale;
+            float scaledH = gate.bitmap.getHeight() * gate.scale;
+            android.graphics.RectF destRect = new android.graphics.RectF(
+                    gate.x - 100, gate.y - 100,
+                    gate.x - 100 + scaledW, gate.y - 100 + scaledH);
+            canvas.drawBitmap(gate.bitmap, null, destRect, null);
         }
         canvas.restore();
     }
@@ -334,8 +350,11 @@ public class DiagramView extends View {
             GateInstance gate = gates.get(i);
             float left = gate.x - 100;
             float top = gate.y - 100;
-            float right = left + gate.bitmap.getWidth();
-            float bottom = top + gate.bitmap.getHeight();
+
+            // Use the scale here too!
+            float right = left + (gate.bitmap.getWidth() * gate.scale);
+            float bottom = top + (gate.bitmap.getHeight() * gate.scale);
+
             if (x >= left && x <= right && y >= top && y <= bottom) {
                 return gate;
             }
@@ -351,22 +370,54 @@ public class DiagramView extends View {
         canvas.scale(mScaleFactor, mScaleFactor);
         drawGrid(canvas);
         for (Connection conn : connections) {
-            float x1 = conn.start.x - 100 + conn.start.bitmap.getWidth();
-            float y1 = conn.start.y - 100 + conn.start.bitmap.getHeight() / 2f;
-            float x2 = conn.end.x - 100;
-            float y2 = conn.end.y - 100 + conn.end.bitmap.getHeight() / 2f;
+            // Calculate the actual width/height based on scale
+            float startW = conn.start.bitmap.getWidth() * conn.start.scale;
+            float startH = conn.start.bitmap.getHeight() * conn.start.scale;
+
+            float endW = conn.end.bitmap.getWidth() * conn.end.scale;
+            float endH = conn.end.bitmap.getHeight() * conn.end.scale;
+
+            // START POINT: The Right Edge of the start gate, vertically centered
+            float x1 = (conn.start.x - 100) + startW;
+            float y1 = (conn.start.y - 100) + (startH / 2f);
+
+            // END POINT: The Left Edge of the end gate, vertically centered
+            float x2 = (conn.end.x - 100);
+            float y2 = (conn.end.y - 100) + (endH / 2f);
+
             drawOrthogonalLine(canvas, x1, y1, x2, y2, linePaint);
         }
         if (connectionStartGate != null && mSelectedGate == null) {
-            float x1 = connectionStartGate.x - 100 + connectionStartGate.bitmap.getWidth();
-            float y1 = connectionStartGate.y - 100 + connectionStartGate.bitmap.getHeight() / 2f;
+            // Start at the scaled right edge
+            float x1 = connectionStartGate.x - 100 + (connectionStartGate.bitmap.getWidth() * connectionStartGate.scale);
+            float y1 = connectionStartGate.y - 100 + (connectionStartGate.bitmap.getHeight() * connectionStartGate.scale / 2f);
+
+            // Draw to current finger position (mCurrentX, mCurrentY)
             drawOrthogonalLine(canvas, x1, y1, mCurrentX, mCurrentY, linePaint);
         }
+        // Inside DiagramView.java -> onDraw()
         for (GateInstance gate : gates) {
+            // 1. Calculate the scaled width and height
+            float scaledW = gate.bitmap.getWidth() * gate.scale;
+            float scaledH = gate.bitmap.getHeight() * gate.scale;
+
+            // 2. Create the destination rectangle (where the image will be stretched to)
+            // We subtract 100 because your code seems to use a -100 offset for centering
+            android.graphics.RectF destRect = new android.graphics.RectF(
+                    gate.x - 100,
+                    gate.y - 100,
+                    gate.x - 100 + scaledW,
+                    gate.y - 100 + scaledH
+            );
+
+            // 3. Draw the bitmap INTO that rectangle
+            // The 'null' for the second parameter means "use the whole source image"
+            canvas.drawBitmap(gate.bitmap, null, destRect, null);
+
+            // Optional: Update your selection box logic if you have one
             if (gate == connectionStartGate) {
-                canvas.drawRect(gate.x - 105, gate.y - 105, gate.x + 105, gate.y + 105, selectedPaint);
+                canvas.drawRect(destRect, selectedPaint);
             }
-            canvas.drawBitmap(gate.bitmap, gate.x - 100, gate.y - 100, null);
         }
         canvas.restore();
     }
@@ -424,12 +475,14 @@ public class DiagramView extends View {
         Bitmap bitmap;
         float x, y;
         int resId;
+        float scale = 1.0f;
 
         GateInstance(Bitmap b, float x, float y, int resId) {
             this.bitmap = b;
             this.x = x;
             this.y = y;
             this.resId = resId;
+            this.scale = 1.0f;
         }
     }
 

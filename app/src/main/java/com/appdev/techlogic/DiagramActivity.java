@@ -36,11 +36,13 @@ public class DiagramActivity extends AppCompatActivity {
     List<ShapeItem> shapeList;
     DiagramView diagramView;
     LinearLayout bottomPanel;
-    ImageView btnExpand;
-    ImageView btnMenu;
-    TextView txtTitle;
+    ImageView btnExpand,  btnMenu, btnBackToCategories;
+    TextView txtTitle, panelTitle;
     DatabaseHelper dbHelper;
     String currentCardTitle;
+    List<ShapeItem> categoryList;
+    List<ShapeItem> gateList;
+    List<ShapeItem> ledList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,54 +58,183 @@ public class DiagramActivity extends AppCompatActivity {
         diagramView = findViewById(R.id.diagramView);
         btnMenu = findViewById(R.id.btnMenu);
         txtTitle = findViewById(R.id.txtTitle);
+        btnBackToCategories = findViewById(R.id.btnBackToCategories);
+        panelTitle = findViewById(R.id.panelTitle);
 
         if (currentCardTitle != null) {
             txtTitle.setText(currentCardTitle);
             dbHelper.loadDiagram(currentCardTitle, diagramView);
         }
 
+        setupLibrary();
+
+        diagramView.setOnGateLongClickListener(gate -> {
+            String[] options = {"Resize", "Delete"};
+            new AlertDialog.Builder(this)
+                    .setTitle("Gate Options")
+                    .setItems(options, (dialog, which) -> {
+                        if (which == 0) {
+                            showResizeDialog(gate); // Call the resize dialog
+                        } else if (which == 1) {
+                            diagramView.removeGate(gate); // Call your existing delete method
+                        }
+                    })
+                    .show();
+        });
+
+        btnMenu.setOnClickListener(v -> showPopupMenu(v));
         txtTitle.setOnLongClickListener(v -> {
             showRenameDialog();
             return true;
         });
-
-        btnMenu.setOnClickListener(v -> showPopupMenu(v));
-
-        shapeList = new ArrayList<>();
-        shapeList.add(new ShapeItem("AND", R.drawable.and));
-        shapeList.add(new ShapeItem("OR", R.drawable.or));
-        shapeList.add(new ShapeItem("NAND", R.drawable.nand));
-        shapeList.add(new ShapeItem("NOR", R.drawable.nor));
-
-        shapeAdapter = new ShapeAdapter(shapeList, item -> {
-            diagramView.addGate(item.getImageResId());
-        });
-
-        toolRecycler.setLayoutManager(new GridLayoutManager(this, 2));
-        toolRecycler.setAdapter(shapeAdapter);
-
-        BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
-        btnExpand.setOnClickListener(v -> {
-            if (behavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-                behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-            } else {
-                behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-            }
-        });
-
-        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    btnExpand.setImageResource(android.R.drawable.arrow_down_float);
-                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                    btnExpand.setImageResource(android.R.drawable.arrow_up_float);
-                }
-            }
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
-        });
+        setupBottomSheet();
     }
+
+    private void showResizeDialog(DiagramView.GateInstance gate) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Resize Component");
+
+        // Create a simple SeekBar for scaling
+        LinearLayout layout = new LinearLayout(this);
+        layout.setPadding(50, 40, 50, 40);
+        final android.widget.SeekBar seekBar = new android.widget.SeekBar(this);
+
+        // Scale from 0.5x to 2.5x (represented as 50 to 250)
+        seekBar.setMax(250);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            seekBar.setMin(50);
+        }
+        seekBar.setProgress((int)(gate.scale * 100));
+
+        layout.addView(seekBar, new LinearLayout.LayoutParams(-1, -2));
+        builder.setView(layout);
+
+        seekBar.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar sb, int progress, boolean fromUser) {
+                gate.scale = progress / 100.0f;
+                diagramView.invalidate(); // Force redraw the canvas with new scale
+            }
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar sb) {}
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar sb) {}
+        });
+
+        builder.setPositiveButton("Done", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+        private void initializeComponentData() {
+        // 1. Create the Main Categories
+            categoryList = new ArrayList<>();
+            categoryList.add(new ShapeItem("Logic Gates", R.drawable.gates, true));
+            categoryList.add(new ShapeItem("LEDs", R.drawable.led, true));
+            // 2. Create the Sub-components (Logic Gates)
+            gateList = new ArrayList<>();
+            gateList.add(new ShapeItem("AND", R.drawable.and, false));
+            gateList.add(new ShapeItem("OR", R.drawable.or, false));
+            gateList.add(new ShapeItem("NAND", R.drawable.nand, false));
+            gateList.add(new ShapeItem("NOR", R.drawable.nor, false));
+            gateList.add(new ShapeItem("XOR", R.drawable.xor, false));
+            gateList.add(new ShapeItem("NOT", R.drawable.not, false));
+            // ... add all your gates here
+
+            // 3. Create the Sub-components (LEDs)
+            ledList = new ArrayList<>();
+            ledList.add(new ShapeItem("Red LED", R.drawable.led, false));
+        }
+        private void setupLibrary() {
+            initializeComponentData();
+            toolRecycler.setLayoutManager(new GridLayoutManager(this, 2));
+            // Set the initial view to show CATEGORIES
+            shapeAdapter = new ShapeAdapter(categoryList, item -> {
+                if (item.isCategory()) {
+                    // IF USER CLICKS A CATEGORY: Switch the list
+                    if (item.getName().equals("Logic Gates")) {
+                        shapeAdapter.updateList(gateList);
+                    } else if (item.getName().equals("LEDs")) {
+                        shapeAdapter.updateList(ledList);
+                    }
+                    // Add a "Back" button functionality or button UI here if desired
+                    btnBackToCategories.setVisibility(View.VISIBLE);
+                    panelTitle.setText(item.getName());
+                } else {
+                    // IF USER CLICKS AN ACTUAL COMPONENT: Add to diagram
+                    diagramView.addGate(item.getImageResId());
+                    // Optionally close panel
+                    // bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                }
+            });
+            toolRecycler.setAdapter(shapeAdapter);
+            btnBackToCategories.setOnClickListener(v -> {
+                shapeAdapter.updateList(categoryList);
+                btnBackToCategories.setVisibility(View.GONE);
+                panelTitle.setText("Categories");
+            });
+        }
+//        shapeList = new ArrayList<>();
+//        shapeList.add(new ShapeItem("AND", R.drawable.and));
+//        shapeList.add(new ShapeItem("OR", R.drawable.or));
+//        shapeList.add(new ShapeItem("NAND", R.drawable.nand));
+//        shapeList.add(new ShapeItem("NOR", R.drawable.nor));
+//        shapeList.add(new ShapeItem("XOR", R.drawable.xor));
+//        shapeList.add(new ShapeItem("NOT", R.drawable.not));
+//
+//
+//        shapeAdapter = new ShapeAdapter(shapeList, item -> {
+//            diagramView.addGate(item.getImageResId());
+//        });
+
+
+//        toolRecycler.setLayoutManager(new GridLayoutManager(this, 2));
+//        toolRecycler.setAdapter(shapeAdapter);
+
+//        BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
+//        btnExpand.setOnClickListener(v -> {
+//            if (behavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+//                behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+//            } else {
+//                behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+//            }
+//        });
+//
+//        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+//            @Override
+//            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+//                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+//                    btnExpand.setImageResource(android.R.drawable.arrow_down_float);
+//                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+//                    btnExpand.setImageResource(android.R.drawable.arrow_up_float);
+//                }
+//            }
+//            @Override
+//            public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
+//        });
+//    }
+private void setupBottomSheet() {
+    BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
+    btnExpand.setOnClickListener(v -> {
+        if (behavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+            behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        } else {
+            behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
+    });
+
+    behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+        @Override
+        public void onStateChanged(@NonNull View bottomSheet, int newState) {
+            if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                btnExpand.setImageResource(android.R.drawable.arrow_down_float);
+            } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
+                btnExpand.setImageResource(android.R.drawable.arrow_up_float);
+            }
+        }
+        @Override
+        public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
+    });
+}
 
     private void showRenameDialog() {
         if (currentCardTitle == null) return;

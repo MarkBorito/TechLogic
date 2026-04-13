@@ -67,4 +67,8 @@ public class ShapeAdapter extends RecyclerView.Adapter<ShapeAdapter.ViewHolder> 
             imgTool = itemView.findViewById(R.id.imgTool);
         }
     }
+    public void updateList(List<ShapeItem> newList) {
+        this.list = newList;
+        notifyDataSetChanged(); // This refreshes the UI with the new items
+    }
 }
