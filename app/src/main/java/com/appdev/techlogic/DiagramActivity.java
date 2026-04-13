@@ -1,7 +1,9 @@
 package com.appdev.techlogic;
 
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -56,6 +58,12 @@ public class DiagramActivity extends AppCompatActivity {
             dbHelper.loadDiagram(currentCardTitle, diagramView);
         }
 
+        // Add long press listener to rename from header
+        txtTitle.setOnLongClickListener(v -> {
+            showRenameDialog();
+            return true;
+        });
+
         // Set up the menu button
         btnMenu.setOnClickListener(v -> showPopupMenu(v));
 
@@ -100,6 +108,36 @@ public class DiagramActivity extends AppCompatActivity {
             @Override
             public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
         });
+    }
+
+    private void showRenameDialog() {
+        if (currentCardTitle == null) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Rename Project");
+
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_text, null);
+        final EditText input = viewInflated.findViewById(R.id.input);
+        input.setText(currentCardTitle);
+        input.setSelectAllOnFocus(true);
+        builder.setView(viewInflated);
+
+        builder.setPositiveButton("Rename", (dialog, which) -> {
+            String newTitle = input.getText().toString().trim();
+            if (newTitle.isEmpty()) {
+                Toast.makeText(this, "Title cannot be empty", Toast.LENGTH_SHORT).show();
+            } else if (newTitle.equals(currentCardTitle)) {
+                dialog.dismiss();
+            } else {
+                dbHelper.updateCardTitle(currentCardTitle, newTitle);
+                currentCardTitle = newTitle;
+                txtTitle.setText(newTitle);
+                Toast.makeText(this, "Renamed to " + newTitle, Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
     }
 
     private void showPopupMenu(View view) {

@@ -2,8 +2,12 @@ package com.appdev.techlogic;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -48,15 +52,10 @@ public class MainActivity extends AppCompatActivity {
                     recyclerView.scrollToPosition(0);
                 },
                 position -> { // Card click
-                    // Add this check to prevent IndexOutOfBounds
                     if (position < 0 || position >= list.size()) return;
 
                     CardItem clicked = list.get(position);
-
                     if (clicked.isAddButton) return;
-
-                    // This Toast confirms the code is reaching this point
-                    Toast.makeText(this, "Opening: " + clicked.title, Toast.LENGTH_SHORT).show();
 
                     Intent intent = new Intent(MainActivity.this, DiagramActivity.class);
                     intent.putExtra("card_title", clicked.title);
@@ -64,8 +63,55 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
+        // Add Long Click to Rename
+        adapter.setOnCardLongClickListener(position -> {
+            if (position < 0 || position >= list.size()) return;
+            CardItem clicked = list.get(position);
+            if (clicked.isAddButton) return;
+
+            showRenameDialog(clicked.title, position);
+        });
+
         recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         recyclerView.setAdapter(adapter);
+    }
+
+    private void showRenameDialog(String oldTitle, int position) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Rename Project");
+
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_text, null);
+        final EditText input = viewInflated.findViewById(R.id.input);
+        input.setText(oldTitle);
+        input.setSelectAllOnFocus(true);
+        builder.setView(viewInflated);
+
+        builder.setPositiveButton("Rename", (dialog, which) -> {
+            String newTitle = input.getText().toString().trim();
+            if (newTitle.isEmpty()) {
+                Toast.makeText(this, "Title cannot be empty", Toast.LENGTH_SHORT).show();
+            } else if (newTitle.equals(oldTitle)) {
+                dialog.dismiss();
+            } else if (isTitleExists(newTitle)) {
+                Toast.makeText(this, "Title already exists", Toast.LENGTH_SHORT).show();
+            } else {
+                db.updateCardTitle(oldTitle, newTitle);
+                refreshList();
+                Toast.makeText(this, "Renamed to " + newTitle, Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    private boolean isTitleExists(String title) {
+        for (CardItem item : list) {
+            if (!item.isAddButton && item.title.equalsIgnoreCase(title)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String generateUniqueTitle() {
@@ -89,7 +135,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Refresh the list when coming back from DiagramActivity (in case of delete)
         refreshList();
     }
 

@@ -120,6 +120,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void updateCardTitle(String oldTitle, String newTitle) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            ContentValues cardValues = new ContentValues();
+            cardValues.put(COLUMN_CARD_TITLE, newTitle);
+            db.update(TABLE_CARDS, cardValues, COLUMN_CARD_TITLE + "=?", new String[]{oldTitle});
+
+            ContentValues gateValues = new ContentValues();
+            gateValues.put(COLUMN_GATE_CARD_TITLE, newTitle);
+            db.update(TABLE_GATES, gateValues, COLUMN_GATE_CARD_TITLE + "=?", new String[]{oldTitle});
+
+            ContentValues connValues = new ContentValues();
+            connValues.put(COLUMN_CONN_CARD_TITLE, newTitle);
+            db.update(TABLE_CONNECTIONS, connValues, COLUMN_CONN_CARD_TITLE + "=?", new String[]{oldTitle});
+
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+    }
+
     // --- Diagram Data Methods ---
 
     public void saveDiagram(String cardTitle, List<DiagramView.GateInstance> gates, List<DiagramView.Connection> connections) {
