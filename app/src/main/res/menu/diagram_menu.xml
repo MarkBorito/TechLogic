@@ -4,6 +4,9 @@
         android:id="@+id/action_save"
         android:title="Save File" />
     <item
+        android:id="@+id/action_export"
+        android:title="Export As" />
+    <item
         android:id="@+id/action_delete"
         android:title="Delete File" />
     <item

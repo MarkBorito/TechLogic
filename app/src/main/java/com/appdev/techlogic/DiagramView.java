@@ -166,6 +166,66 @@ public class DiagramView extends View {
     public List<GateInstance> getGates() { return gates; }
     public List<Connection> getConnections() { return connections; }
 
+    public float[] getBoundingBox() {
+        if (gates.isEmpty()) return null;
+
+        float minX = Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
+
+        for (GateInstance gate : gates) {
+            float left = gate.x - 100;
+            float top = gate.y - 100;
+            float right = left + gate.bitmap.getWidth();
+            float bottom = top + gate.bitmap.getHeight();
+
+            if (left < minX) minX = left;
+            if (top < minY) minY = top;
+            if (right > maxX) maxX = right;
+            if (bottom > maxY) maxY = bottom;
+        }
+
+        // Add padding
+        float padding = 50;
+        return new float[]{minX - padding, minY - padding, maxX + padding, maxY + padding};
+    }
+
+    public void drawDiagram(Canvas canvas, float offsetX, float offsetY) {
+        canvas.save();
+        canvas.translate(-offsetX, -offsetY);
+
+        // Draw connections
+        for (Connection conn : connections) {
+            float x1 = conn.start.x - 100 + conn.start.bitmap.getWidth();
+            float y1 = conn.start.y - 100 + conn.start.bitmap.getHeight() / 2f;
+            float x2 = conn.end.x - 100;
+            float y2 = conn.end.y - 100 + conn.end.bitmap.getHeight() / 2f;
+            drawOrthogonalLine(canvas, x1, y1, x2, y2, linePaint);
+        }
+
+        // Draw gates
+        for (GateInstance gate : gates) {
+            canvas.drawBitmap(gate.bitmap, gate.x - 100, gate.y - 100, null);
+        }
+        canvas.restore();
+    }
+
+    public Bitmap exportToBitmap() {
+        float[] bbox = getBoundingBox();
+        if (bbox == null) return null;
+
+        int width = (int) (bbox[2] - bbox[0]);
+        int height = (int) (bbox[3] - bbox[1]);
+
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.WHITE);
+        drawDiagram(canvas, bbox[0], bbox[1]);
+
+        return bitmap;
+    }
+
     @Override
     public boolean performClick() {
         return super.performClick();
