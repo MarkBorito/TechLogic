@@ -32,7 +32,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+// Inside onCreate, after setContentView
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.header_gradient));
+        }
         recyclerView = findViewById(R.id.recyclerView);
         db = new DatabaseHelper(this); // Initialize SQLite helper
 
