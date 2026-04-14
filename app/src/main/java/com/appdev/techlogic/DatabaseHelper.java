@@ -14,12 +14,13 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "techlogic_db";
-    private static final int DB_VERSION = 3; // Incremented version for migration
+    private static final int DB_VERSION = 5; // Incremented to 5 to fix missing image column
 
     // Cards table (Existing)
     private static final String TABLE_CARDS = "cards";
     private static final String COLUMN_CARD_ID = "id";
     private static final String COLUMN_CARD_TITLE = "title";
+    private static final String COLUMN_CARD_IMAGE = "image";
 
     // Gates table (New)
     private static final String TABLE_GATES = "gates";
@@ -45,7 +46,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_TEXT_X = "x";
     private static final String COLUMN_TEXT_Y = "y";
     private static final String COLUMN_TEXT_SCALE = "scale";
-    private static final String COLUMN_CARD_IMAGE = "image";
 
     public DatabaseHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -91,6 +91,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_GATES);
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_CONNECTIONS);
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_TEXTS);
+            
             String CREATE_GATES_TABLE = "CREATE TABLE " + TABLE_GATES + "("
                     + COLUMN_GATE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + COLUMN_GATE_CARD_TITLE + " TEXT,"
@@ -105,15 +106,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     + COLUMN_START_GATE_INDEX + " INTEGER,"
                     + COLUMN_END_GATE_INDEX + " INTEGER)";
             db.execSQL(CREATE_CONNECTIONS_TABLE);
-            String CREATE_TEXT_TABLE = "CREATE TABLE " + TABLE_TEXTS + "("
+
+            String CREATE_TEXTS_TABLE = "CREATE TABLE " + TABLE_TEXTS + "("
                     + COLUMN_TEXT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + COLUMN_TEXT_CARD_TITLE + " TEXT,"
-                    + COLUMN_START_GATE_INDEX + " INTEGER,"
-                    + COLUMN_END_GATE_INDEX + " INTEGER)";
-            db.execSQL(CREATE_TEXT_TABLE);
+                    + COLUMN_TEXT_CONTENT + " TEXT,"
+                    + COLUMN_TEXT_X + " REAL,"
+                    + COLUMN_TEXT_Y + " REAL,"
+                    + COLUMN_TEXT_SCALE + " REAL)";
+            db.execSQL(CREATE_TEXTS_TABLE);
         }
         if (oldVersion < 4) {
-            db.execSQL("ALTER TABLE " + TABLE_GATES + " ADD COLUMN " + COLUMN_GATE_SCALE + " REAL DEFAULT 1.0");
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_GATES + " ADD COLUMN " + COLUMN_GATE_SCALE + " REAL DEFAULT 1.0");
+            } catch (Exception ignored) {}
+        }
+        if (oldVersion < 5) {
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_CARDS + " ADD COLUMN " + COLUMN_CARD_IMAGE + " BLOB");
+            } catch (Exception ignored) {}
         }
     }
 
