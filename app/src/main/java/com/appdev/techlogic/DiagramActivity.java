@@ -34,7 +34,6 @@ public class DiagramActivity extends AppCompatActivity {
 
     RecyclerView toolRecycler;
     ShapeAdapter shapeAdapter;
-    List<ShapeItem> shapeList;
     DiagramView diagramView;
     LinearLayout bottomPanel;
     ImageView btnExpand,  btnMenu, btnBackToCategories;
@@ -63,24 +62,42 @@ public class DiagramActivity extends AppCompatActivity {
         txtTitle = findViewById(R.id.txtTitle);
         btnBackToCategories = findViewById(R.id.btnBackToCategories);
         panelTitle = findViewById(R.id.panelTitle);
+        ImageView btnUndo = findViewById(R.id.btnUndo);
+        ImageView btnRedo = findViewById(R.id.btnRedo);
 
         if (currentCardTitle != null) {
             txtTitle.setText(currentCardTitle);
             dbHelper.loadDiagram(currentCardTitle, diagramView);
         }
+        btnUndo.setOnClickListener(v -> diagramView.undo());
+        btnRedo.setOnClickListener(v -> diagramView.redo());
 
         setupLibrary();
 
         diagramView.setOnGateLongClickListener(gate -> {
-            String[] options = {"Resize", "Delete"};
+            String lockOption = gate.isLocked ? "Unlock Component" : "Lock Component";
+            String[] options = {"Resize", "Copy", "Duplicate", "Group/Ungroup", lockOption, "Delete"};
+
             new AlertDialog.Builder(this)
                     .setTitle("Gate Options")
                     .setItems(options, (dialog, which) -> {
-                        if (which == 0) {
-                            showResizeDialog(gate); // Call the resize dialog
-                        } else if (which == 1) {
-                            diagramView.removeGate(gate); // Call your existing delete method
+                        switch (which) {
+                            case 0: showResizeDialog(gate); break;
+                            case 1:
+                                diagramView.copyGate(gate);
+                                Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show();
+                                break;
+                            case 2: diagramView.duplicateGate(gate); break;
+                            case 3: diagramView.toggleGroup(gate); break;
+                            case 4: // Lock/Unlock logic
+                                gate.isLocked = !gate.isLocked;
+                                String msg = gate.isLocked ? "Component Locked" : "Component Unlocked";
+                                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                                diagramView.invalidate();
+                                break;
+                            case 5: diagramView.removeGate(gate); break;
                         }
+                        dialog.dismiss();
                     })
                     .show();
         });
@@ -91,12 +108,17 @@ public class DiagramActivity extends AppCompatActivity {
         diagramView.setOnTextLongClickListener(textItem -> {
             String[] options = {"Edit Text", "Resize", "Delete"};
             new AlertDialog.Builder(this)
-                    .setTitle("Label Options")
+                    .setTitle("Text Options")
                     .setItems(options, (dialog, which) -> {
-                        if (which == 0) showEditLabelDialog(textItem);
-                        else if (which == 1) showTextResizeDialog(textItem);
-                        else if (which == 2) diagramView.removeText(textItem);
-                    }).show();
+                        if (which == 0) {
+                            showEditLabelDialog(textItem);
+                        } else if (which == 1) {
+                            showTextResizeDialog(textItem);
+                        } else if (which == 2) {
+                            diagramView.removeText(textItem);
+                        }
+                    })
+                    .show();
         });
 
         btnMenu.setOnClickListener(v -> showPopupMenu(v));
@@ -250,7 +272,7 @@ public class DiagramActivity extends AppCompatActivity {
                     panelTitle.setText(item.getName());
                 } else {
                     if (item.getName().equals("Add Label")) {
-                        diagramView.addText("Text!");
+                        diagramView.addText("Text");
                     } else {
                         diagramView.addGate(item.getImageResId());
                     }
@@ -263,51 +285,25 @@ public class DiagramActivity extends AppCompatActivity {
                 panelTitle.setText("Categories");
             });
         }
-//        shapeList = new ArrayList<>();
-//        shapeList.add(new ShapeItem("AND", R.drawable.and));
-//        shapeList.add(new ShapeItem("OR", R.drawable.or));
-//        shapeList.add(new ShapeItem("NAND", R.drawable.nand));
-//        shapeList.add(new ShapeItem("NOR", R.drawable.nor));
-//        shapeList.add(new ShapeItem("XOR", R.drawable.xor));
-//        shapeList.add(new ShapeItem("NOT", R.drawable.not));
-//
-//
-//        shapeAdapter = new ShapeAdapter(shapeList, item -> {
-//            diagramView.addGate(item.getImageResId());
-//        });
 
-
-//        toolRecycler.setLayoutManager(new GridLayoutManager(this, 2));
-//        toolRecycler.setAdapter(shapeAdapter);
-
-//        BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
-//        btnExpand.setOnClickListener(v -> {
-//            if (behavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
-//                behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-//            } else {
-//                behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-//            }
-//        });
-//
-//        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-//            @Override
-//            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-//                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-//                    btnExpand.setImageResource(android.R.drawable.arrow_down_float);
-//                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-//                    btnExpand.setImageResource(android.R.drawable.arrow_up_float);
-//                }
-//            }
-//            @Override
-//            public void onSlide(@NonNull View bottomSheet, float slideOffset) {}
-//        });
-//    }
 private void setupBottomSheet() {
     BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
+    // 1. Disable fitToContents to enable the Half-Expanded state
+    behavior.setFitToContents(false);
+    // 2. Set the middle stop point at 50% of the screen
+    behavior.setHalfExpandedRatio(0.5f);
+    // 3. Ensure the panel doesn't hide completely
+    behavior.setHideable(false);
     btnExpand.setOnClickListener(v -> {
-        if (behavior.getState() != BottomSheetBehavior.STATE_EXPANDED) {
+        // Step-by-step expansion logic for the button
+        if (behavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
+            // From Bottom -> Middle
+            behavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
+        } else if (behavior.getState() == BottomSheetBehavior.STATE_HALF_EXPANDED) {
+            // From Middle -> Top
             behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
         } else {
+            // From Top -> Bottom
             behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         }
     });
@@ -447,7 +443,8 @@ private void setupBottomSheet() {
 
     private void saveCurrentDiagram() {
         if (currentCardTitle != null) {
-            dbHelper.saveDiagram(currentCardTitle, diagramView.getGates(), diagramView.getConnections());
+            Bitmap preview = diagramView.getThumbnail();
+            dbHelper.saveDiagram(currentCardTitle, diagramView.getGates(), diagramView.getConnections(), diagramView.getTexts(), preview);
             Toast.makeText(this, "Diagram saved successfully!", Toast.LENGTH_SHORT).show();
         }
     }

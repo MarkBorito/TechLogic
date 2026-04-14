@@ -1,13 +1,18 @@
 package com.appdev.techlogic;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -16,6 +21,7 @@ public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private OnAddClickListener addListener;
     private OnCardClickListener cardListener;
     private OnCardLongClickListener longClickListener;
+    private List<CardItem> fullList;
 
     public interface OnAddClickListener {
         void onAddClick();
@@ -33,6 +39,30 @@ public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.list = list;
         this.addListener = addListener;
         this.cardListener = cardListener;
+        this.fullList = new ArrayList<>(list);
+    }
+    public void filter(String text) {
+        list.clear();
+        if (text.isEmpty()) {
+            list.addAll(fullList);
+        } else {
+            text = text.toLowerCase();
+            for (CardItem item : fullList) {
+                // Keep the "Add Card" button (+) and match titles
+                if (item.isAddButton || item.title.toLowerCase().contains(text)) {
+                    list.add(item);
+                }
+            }
+        }
+        notifyDataSetChanged();
+    }
+
+    // When you update the list from the database, update fullList too
+    public void updateData(List<CardItem> newList) {
+        this.fullList = new ArrayList<>(newList);
+        this.list.clear();
+        this.list.addAll(newList);
+        notifyDataSetChanged();
     }
 
     public void setOnCardLongClickListener(OnCardLongClickListener listener) {
@@ -54,20 +84,31 @@ public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         } else {
             View view = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.item_card, parent, false);
-            return new CardViewHolder(view, cardListener, longClickListener);
+            return new CardViewHolder(view, cardListener, longClickListener, menuListener);
         }
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        CardItem item = list.get(position); // MOVED: Put this at the top so it's accessible
+
         if (holder instanceof AddViewHolder) {
             holder.itemView.setOnClickListener(v -> {
                 if (addListener != null) addListener.onAddClick();
             });
         } else if (holder instanceof CardViewHolder) {
-            CardItem item = list.get(position);
-            CardViewHolder cardHolder = (CardViewHolder) holder;
+            CardViewHolder cardHolder = (CardViewHolder) holder; // Variable declared here
             cardHolder.txtTitle.setText(item.title);
+
+            // FIX: Keep the thumbnail logic INSIDE the if-else-if block
+            if (item.image != null && item.image.length > 0) {
+                Bitmap bitmap = BitmapFactory.decodeByteArray(item.image, 0, item.image.length);
+                cardHolder.imgThumbnail.setImageBitmap(bitmap);
+                cardHolder.imgThumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            } else {
+                // If no image, show your logo or a default preview
+                cardHolder.imgThumbnail.setImageResource(R.drawable.logo);
+            }
         }
     }
 
@@ -84,11 +125,16 @@ public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static class CardViewHolder extends RecyclerView.ViewHolder {
         TextView txtTitle;
+        ImageView imgThumbnail; // ADDED: The ImageView reference
 
-        public CardViewHolder(@NonNull View itemView, OnCardClickListener clickListener, OnCardLongClickListener longListener) {
+        public CardViewHolder(@NonNull View itemView, OnCardClickListener clickListener, OnCardLongClickListener longListener, OnMenuClickListener menuListener) {
             super(itemView);
             txtTitle = itemView.findViewById(R.id.txtTitle);
-
+            imgThumbnail = itemView.findViewById(R.id.imgThumbnail); // ADDED: Find it in XML
+            ImageButton btnMenu = itemView.findViewById(R.id.btnMenu);
+            btnMenu.setOnClickListener(v -> {
+                if (menuListener != null) menuListener.onMenuClick(getAdapterPosition(), v);
+            });
             itemView.setOnClickListener(v -> {
                 if (clickListener != null) {
                     clickListener.onCardClick(getAdapterPosition());
@@ -103,5 +149,12 @@ public class CardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 return false;
             });
         }
+    }
+    public interface OnMenuClickListener {
+        void onMenuClick(int position, View view);
+    }
+    private OnMenuClickListener menuListener;
+    public void setOnMenuClickListener(OnMenuClickListener listener) {
+        this.menuListener = listener;
     }
 }

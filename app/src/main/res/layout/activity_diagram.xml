@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="10dp">
+            android:padding="5dp">
 
             <ImageView
                 android:id="@+id/btnBackToCategories"
@@ -61,6 +61,30 @@
                 android:text="Categories"
                 android:textSize="18sp"
                 android:layout_marginStart="10dp"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginEnd="15dp">
+
+                <ImageView
+                    android:id="@+id/btnUndo"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:padding="5dp"
+                    android:src="@drawable/undo"
+                    android:contentDescription="Undo" />
+
+                <ImageView
+                    android:id="@+id/btnRedo"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:padding="5dp"
+                    android:src="@drawable/redo"
+                    android:layout_marginStart="10dp"
+                    android:contentDescription="Redo" />
+            </LinearLayout>
 
             <ImageView
                 android:id="@+id/btnExpand"
