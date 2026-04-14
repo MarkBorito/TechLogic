@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -136,12 +137,11 @@ public class DiagramView extends View {
                 float diagramX = (e.getX() - mPosX) / mScaleFactor;
                 float diagramY = (e.getY() - mPosY) / mScaleFactor;
 
-                for (TextInstance t : texts) {
-                    if (diagramX >= t.x && diagramX <= t.x + 200 && diagramY >= t.y - 50 && diagramY <= t.y) {
-                        if (textDoubleClickListener != null) {
-                            textDoubleClickListener.onTextDoubleClick(t);
-                            return true;
-                        }
+                TextInstance clickedText = findTextAt(diagramX, diagramY);
+                if (clickedText != null) {
+                    if (textDoubleClickListener != null) {
+                        textDoubleClickListener.onTextDoubleClick(clickedText);
+                        return true;
                     }
                 }
                 return false;
@@ -271,10 +271,11 @@ public class DiagramView extends View {
             if (bottom > maxY) maxY = bottom;
         }
         for (TextInstance t : texts) {
-            if (t.x < minX) minX = t.x;
-            if (t.y - 50 < minY) minY = t.y - 50;
-            if (t.x + 200 > maxX) maxX = t.x + 200;
-            if (t.y > maxY) maxY = t.y;
+            RectF bounds = t.getBounds();
+            if (bounds.left < minX) minX = bounds.left;
+            if (bounds.top < minY) minY = bounds.top;
+            if (bounds.right > maxX) maxX = bounds.right;
+            if (bounds.bottom > maxY) maxY = bounds.bottom;
         }
 
         // Add padding
@@ -358,16 +359,8 @@ public class DiagramView extends View {
                 mCurrentY = diagramY;
                 mSelectedGate = findGateAt(diagramX, diagramY);
                 mSelectedText = findTextAt(diagramX, diagramY);
-                if (mSelectedText == null) {
-                    mSelectedGate = findGateAt(diagramX, diagramY);
-                }
-                if (mSelectedGate == null) {
-                    for (TextInstance t : texts) {
-                        if (diagramX >= t.x && diagramX <= t.x + 200 && diagramY >= t.y - 50 && diagramY <= t.y) {
-                            mSelectedText = t; // You'll need to declare 'private TextInstance mSelectedText' at the top
-                            break;
-                        }
-                    }
+                if (mSelectedText != null) {
+                    mSelectedGate = null; // Prioritize text selection if overlapping
                 }
                 invalidate();
                 break;
@@ -588,6 +581,9 @@ public class DiagramView extends View {
         }
         for (TextInstance t : texts) {
             t.paint.setTextSize(50f * t.scale);
+            if (t == mSelectedText) {
+                canvas.drawRect(t.getBounds(), selectedPaint);
+            }
             canvas.drawText(t.text, t.x, t.y, t.paint);
         }
         canvas.restore();
@@ -683,6 +679,14 @@ public class DiagramView extends View {
             this.paint.setTextSize(50f); // Base size
             this.paint.setAntiAlias(true);
         }
+
+        public RectF getBounds() {
+            paint.setTextSize(50f * scale);
+            float width = paint.measureText(text);
+            Paint.FontMetrics fm = paint.getFontMetrics();
+            float padding = 10f;
+            return new RectF(x - padding, y + fm.ascent - padding, x + width + padding, y + fm.descent + padding);
+        }
     }
     public interface OnTextDoubleClickListener {
         void onTextDoubleClick(TextInstance text);
@@ -710,9 +714,7 @@ public class DiagramView extends View {
     }
     private TextInstance findTextAt(float x, float y) {
         for (TextInstance t : texts) {
-            // We create a bounding box:
-            // Left: t.x, Right: t.x + 300 (approx), Top: t.y - 60, Bottom: t.y + 20
-            if (x >= t.x && x <= t.x + 300 && y >= t.y - 60 && y <= t.y + 20) {
+            if (t.getBounds().contains(x, y)) {
                 return t;
             }
         }
