@@ -194,13 +194,16 @@ public class DiagramView extends View {
 
     private Connection findConnectionAt(float x, float y) {
         float threshold = 30 / mScaleFactor;
+        // Inside findConnectionAt(float x, float y)
         for (Connection conn : connections) {
-            // Update these to match the scaled edges used in onDraw
             float x1 = conn.start.x - 100 + (conn.start.bitmap.getWidth() * conn.start.scale);
             float y1 = conn.start.y - 100 + (conn.start.bitmap.getHeight() * conn.start.scale / 2f);
 
             float x2 = conn.end.x - 100;
-            float y2 = conn.end.y - 100 + (conn.end.bitmap.getHeight() * conn.end.scale / 2f);
+            float gateHeight = conn.end.bitmap.getHeight() * conn.end.scale;
+
+            // Use the same helper for consistent Y positioning
+            float y2 = getConnectionEndPointY(conn);
 
             float midX = (x1 + x2) / 2;
 
@@ -210,6 +213,7 @@ public class DiagramView extends View {
                 return conn;
             }
         }
+
         return null;
     }
 
@@ -288,11 +292,17 @@ public class DiagramView extends View {
         canvas.translate(-offsetX, -offsetY);
 
         // Draw connections
+        // Inside drawDiagram(Canvas canvas, float offsetX, float offsetY)
         for (Connection conn : connections) {
+            // 1. Calculate Start Point (Output of start gate)
             float x1 = conn.start.x - 100 + (conn.start.bitmap.getWidth() * conn.start.scale);
             float y1 = conn.start.y - 100 + (conn.start.bitmap.getHeight() * conn.start.scale / 2f);
+
+            // 2. Calculate End Point (Inputs of end gate)
             float x2 = conn.end.x - 100;
-            float y2 = conn.end.y - 100 + (conn.end.bitmap.getHeight() * conn.end.scale / 2f);
+            float y2 = getConnectionEndPointY(conn);
+
+            // DRAW THE LINE
             drawOrthogonalLine(canvas, x1, y1, x2, y2, linePaint);
         }
 
@@ -494,25 +504,22 @@ public class DiagramView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.save();
+        // Apply zoom and pan
         canvas.translate(mPosX, mPosY);
         canvas.scale(mScaleFactor, mScaleFactor);
-        drawGrid(canvas);
 
+        // Draw connections with foot positioning
         for (Connection conn : connections) {
-            // Calculate the actual width/height based on scale
             float startW = conn.start.bitmap.getWidth() * conn.start.scale;
             float startH = conn.start.bitmap.getHeight() * conn.start.scale;
 
-            float endW = conn.end.bitmap.getWidth() * conn.end.scale;
-            float endH = conn.end.bitmap.getHeight() * conn.end.scale;
-
-            // START POINT: The Right Edge of the start gate, vertically centered
+            // START POINT: Right Edge, vertically centered
             float x1 = (conn.start.x - 100) + startW;
             float y1 = (conn.start.y - 100) + (startH / 2f);
 
-            // END POINT: The Left Edge of the end gate, vertically centered
+            // END POINT: Left Edge, at specific "feet" or center
             float x2 = (conn.end.x - 100);
-            float y2 = (conn.end.y - 100) + (endH / 2f);
+            float y2 = getConnectionEndPointY(conn);
 
             drawOrthogonalLine(canvas, x1, y1, x2, y2, linePaint);
         }
@@ -589,13 +596,52 @@ public class DiagramView extends View {
         canvas.restore();
     }
 
+    private float getConnectionEndPointY(Connection conn) {
+        float gateHeight = conn.end.bitmap.getHeight() * conn.end.scale;
+
+        int inputIndex = 0;
+        for (Connection other : connections) {
+            if (other == conn) break;
+            if (other.end == conn.end) {
+                inputIndex++;
+            }
+        }
+
+        String resName = "";
+        try {
+            resName = getContext().getResources().getResourceEntryName(conn.end.resId).toLowerCase();
+        } catch (Exception e) {
+            // Default to empty if resource not found
+        }
+
+        // Determine if this is a multi-input gate (AND, OR, NAND, NOR, XOR, XNOR)
+        // Use startsWith("gate_") to avoid matching "resistors" (which contains "or")
+        boolean isMultiInput = resName.startsWith("gate_") && !resName.contains("not");
+
+        if (!isMultiInput) {
+            // For single input gates (NOT, Diodes, Resistors), always center at 50%
+            return conn.end.y - 100 + (gateHeight * 0.50f);
+        } else {
+            // For multi-input gates, use 30% for first, 70% for second
+            if (inputIndex == 0) {
+                return conn.end.y - 100 + (gateHeight * 0.30f);
+            } else if (inputIndex == 1) {
+                return conn.end.y - 100 + (gateHeight * 0.70f);
+            } else {
+                // Fallback for 3+ inputs
+                return conn.end.y - 100 + (gateHeight * 0.50f);
+            }
+        }
+    }
+
     private void drawOrthogonalLine(Canvas canvas, float x1, float y1, float x2, float y2, Paint paint) {
+        float midX = x1 + ((x2 - x1) * 0.5f);
+
         Path path = new Path();
         path.moveTo(x1, y1);
-        float midX = (x1 + x2) / 2;
-        path.lineTo(midX, y1);
-        path.lineTo(midX, y2);
-        path.lineTo(x2, y2);
+        path.lineTo(midX, y1); // Horizontal to middle
+        path.lineTo(midX, y2); // Vertical to the specific "foot" height
+        path.lineTo(x2, y2); // Horizontal to the gate foot
         canvas.drawPath(path, paint);
         float arrowSize = 15;
         Path arrowPath = new Path();
