@@ -223,8 +223,8 @@ public class MainActivity extends AppCompatActivity {
         // 3. FORCE MEASURE: This is the missing piece.
         // We give it a large enough space to "exist" so it can calculate its bounding box.
         tempView.measure(
-                View.MeasureSpec.makeMeasureSpec(5000, View.MeasureSpec.AT_MOST),
-                View.MeasureSpec.makeMeasureSpec(5000, View.MeasureSpec.AT_MOST)
+                View.MeasureSpec.makeMeasureSpec(2500, View.MeasureSpec.AT_MOST),
+                View.MeasureSpec.makeMeasureSpec(2500, View.MeasureSpec.AT_MOST)
         );
         tempView.layout(0, 0, tempView.getMeasuredWidth(), tempView.getMeasuredHeight());
 
