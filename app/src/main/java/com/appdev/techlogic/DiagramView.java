@@ -28,7 +28,7 @@ public class DiagramView extends View {
     private Paint linePaint;
     private Paint selectedPaint;
     private Paint arrowPaint;
-    private int gridSize = 60; // Size of each grid square
+    private int gridSize = 60;
 
     private ScaleGestureDetector mScaleDetector;
     private GestureDetector mGestureDetector;
@@ -113,14 +113,13 @@ public class DiagramView extends View {
                 }
 
 
-                // Check for gate first
+
                 GateInstance gate = findGateAt(diagramX, diagramY);
                 if (gate != null && longClickListener != null) {
                     longClickListener.onLongClick(gate);
                     return;
                 }
 
-                // Then check for connections
                 Connection conn = findConnectionAt(diagramX, diagramY);
                 if (conn != null) {
                     saveState();
@@ -152,7 +151,7 @@ public class DiagramView extends View {
 
     public void saveState() {
         undoStack.push(new DiagramState(gates, connections, texts));
-        redoStack.clear(); // Clear redo history when a new action is performed
+        redoStack.clear();
     }
 
     public void undo() {
@@ -177,7 +176,7 @@ public class DiagramView extends View {
         }
     }
 
-    // Correct method signature in DiagramView.java
+
     public void removeGate(GateInstance gate) {
         saveState();
         gates.remove(gate);
@@ -194,7 +193,7 @@ public class DiagramView extends View {
 
     private Connection findConnectionAt(float x, float y) {
         float threshold = 30 / mScaleFactor;
-        // Inside findConnectionAt(float x, float y)
+
         for (Connection conn : connections) {
             float x1 = conn.start.x - 100 + (conn.start.bitmap.getWidth() * conn.start.scale);
             float y1 = conn.start.y - 100 + (conn.start.bitmap.getHeight() * conn.start.scale / 2f);
@@ -202,7 +201,7 @@ public class DiagramView extends View {
             float x2 = conn.end.x - 100;
             float gateHeight = conn.end.bitmap.getHeight() * conn.end.scale;
 
-            // Use the same helper for consistent Y positioning
+
             float y2 = getConnectionEndPointY(conn);
 
             float midX = (x1 + x2) / 2;
@@ -240,7 +239,7 @@ public class DiagramView extends View {
     public GateInstance createGateFromLoad(int resId, float x, float y, float scale) {
         Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resId);
         GateInstance gate = new GateInstance(bitmap, x, y, resId);
-        gate.scale = scale; // Set the saved scale
+        gate.scale = scale;
         return gate;
     }
 
@@ -291,22 +290,21 @@ public class DiagramView extends View {
         canvas.save();
         canvas.translate(-offsetX, -offsetY);
 
-        // Draw connections
-        // Inside drawDiagram(Canvas canvas, float offsetX, float offsetY)
+
         for (Connection conn : connections) {
-            // 1. Calculate Start Point (Output of start gate)
+
             float x1 = conn.start.x - 100 + (conn.start.bitmap.getWidth() * conn.start.scale);
             float y1 = conn.start.y - 100 + (conn.start.bitmap.getHeight() * conn.start.scale / 2f);
 
-            // 2. Calculate End Point (Inputs of end gate)
+
             float x2 = conn.end.x - 100;
             float y2 = getConnectionEndPointY(conn);
 
-            // DRAW THE LINE
+
             drawOrthogonalLine(canvas, x1, y1, x2, y2, linePaint);
         }
 
-        // Draw gates
+
         for (GateInstance gate : gates) {
             float scaledW = gate.bitmap.getWidth() * gate.scale;
             float scaledH = gate.bitmap.getHeight() * gate.scale;
@@ -337,7 +335,7 @@ public class DiagramView extends View {
         Canvas canvas = new Canvas(bitmap);
         canvas.drawColor(Color.WHITE);
 
-        // This now draws gates, connections, AND text correctly offset!
+
         drawDiagram(canvas, bbox[0], bbox[1]);
 
         return bitmap;
@@ -370,7 +368,7 @@ public class DiagramView extends View {
                 mSelectedGate = findGateAt(diagramX, diagramY);
                 mSelectedText = findTextAt(diagramX, diagramY);
                 if (mSelectedText != null) {
-                    mSelectedGate = null; // Prioritize text selection if overlapping
+                    mSelectedGate = null;
                 }
                 invalidate();
                 break;
@@ -381,19 +379,19 @@ public class DiagramView extends View {
                     final float x = ev.getX(pointerIndex);
                     final float y = ev.getY(pointerIndex);
 
-                    // Calculate how much the finger moved since the last frame
+
                     float dx = (x - mLastTouchX) / mScaleFactor;
                     float dy = (y - mLastTouchY) / mScaleFactor;
 
-                    // Current diagram coordinates for drawing the "in-progress" connection line
+
                     mCurrentX = (x - mPosX) / mScaleFactor;
                     mCurrentY = (y - mPosY) / mScaleFactor;
 
                     if (mSelectedGate != null && !mScaleDetector.isInProgress()) {
-                        // Check if the gate belongs to a group
+
                         List<GateInstance> group = findGroupFor(mSelectedGate);
                         if (group != null) {
-                            // Move every gate in the group smoothly
+
                             for (GateInstance g : group) {
                                 if (!g.isLocked) {
                                     g.x += dx;
@@ -401,21 +399,19 @@ public class DiagramView extends View {
                                 }
                             }
                         } else {
-                            // Move single gate smoothly
+
                             if (!mSelectedGate.isLocked) {
                                 mSelectedGate.x += dx;
                                 mSelectedGate.y += dy;
                             }
                         }
 
-                        // GUIDES REMOVED: We no longer set guideLineX/Y or loop through neighbors here
+
 
                     } else if (mSelectedText != null) {
-                        // Move text smoothly
                         mSelectedText.x += dx;
                         mSelectedText.y += dy;
                     } else if (!mScaleDetector.isInProgress()) {
-                        // Panning logic (moving the whole canvas)
                         mPosX += x - mLastTouchX;
                         mPosY += y - mLastTouchY;
                     }
@@ -450,7 +446,7 @@ public class DiagramView extends View {
                     }
                 }
                 if (moveDist >= 10) {
-                    // It was a drag, so reset connection state
+
                     connectionStartGate = null;
                 }
                 mActivePointerId = -1;
@@ -489,7 +485,7 @@ public class DiagramView extends View {
             float left = gate.x - 100;
             float top = gate.y - 100;
 
-            // Use the scale here too!
+
             float right = left + (gate.bitmap.getWidth() * gate.scale);
             float bottom = top + (gate.bitmap.getHeight() * gate.scale);
 
@@ -504,34 +500,34 @@ public class DiagramView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.save();
-        // Apply zoom and pan
+
         canvas.translate(mPosX, mPosY);
         canvas.scale(mScaleFactor, mScaleFactor);
 
-        // Draw connections with foot positioning
+
         for (Connection conn : connections) {
             float startW = conn.start.bitmap.getWidth() * conn.start.scale;
             float startH = conn.start.bitmap.getHeight() * conn.start.scale;
 
-            // START POINT: Right Edge, vertically centered
+
             float x1 = (conn.start.x - 100) + startW;
             float y1 = (conn.start.y - 100) + (startH / 2f);
 
-            // END POINT: Left Edge, at specific "feet" or center
+
             float x2 = (conn.end.x - 100);
             float y2 = getConnectionEndPointY(conn);
 
             drawOrthogonalLine(canvas, x1, y1, x2, y2, linePaint);
         }
         if (connectionStartGate != null && mSelectedGate == null) {
-            // Start at the scaled right edge
+
             float x1 = connectionStartGate.x - 100 + (connectionStartGate.bitmap.getWidth() * connectionStartGate.scale);
             float y1 = connectionStartGate.y - 100 + (connectionStartGate.bitmap.getHeight() * connectionStartGate.scale / 2f);
 
-            // Draw to current finger position (mCurrentX, mCurrentY)
+
             drawOrthogonalLine(canvas, x1, y1, mCurrentX, mCurrentY, linePaint);
         }
-        // Inside onDraw, before drawing the gates
+
         Paint groupPaint = new Paint();
         groupPaint.setColor(Color.BLUE);
         groupPaint.setStyle(Paint.Style.STROKE);
@@ -553,23 +549,22 @@ public class DiagramView extends View {
                 if (right > maxX) maxX = right;
                 if (bottom > maxY) maxY = bottom;
             }
-            // Draw a rectangle with a little padding around the group
+
             canvas.drawRect(minX - 10, minY - 10, maxX + 10, maxY + 10, groupPaint);
         }
-        // Inside DiagramView.java -> onDraw()
+
         for (GateInstance gate : gates) {
-            // 1. Calculate the scaled width and height
+
             float scaledW = gate.bitmap.getWidth() * gate.scale;
             float scaledH = gate.bitmap.getHeight() * gate.scale;
             if (gate.isLocked) {
                 Paint lockPaint = new Paint();
                 lockPaint.setColor(Color.RED);
                 lockPaint.setTextSize(30f);
-                // Draw a small "L" or a red dot at the corner
+
                 canvas.drawText("🔒", gate.x - 90, gate.y - 70, lockPaint);
             }
-            // 2. Create the destination rectangle (where the image will be stretched to)
-            // We subtract 100 because your code seems to use a -100 offset for centering
+
             android.graphics.RectF destRect = new android.graphics.RectF(
                     gate.x - 100,
                     gate.y - 100,
@@ -577,11 +572,10 @@ public class DiagramView extends View {
                     gate.y - 100 + scaledH
             );
 
-            // 3. Draw the bitmap INTO that rectangle
-            // The 'null' for the second parameter means "use the whole source image"
+
             canvas.drawBitmap(gate.bitmap, null, destRect, null);
 
-            // Optional: Update your selection box logic if you have one
+
             if (gate == connectionStartGate) {
                 canvas.drawRect(destRect, selectedPaint);
             }
@@ -614,21 +608,17 @@ public class DiagramView extends View {
             // Default to empty if resource not found
         }
 
-        // Determine if this is a multi-input gate (AND, OR, NAND, NOR, XOR, XNOR)
-        // Use startsWith("gate_") to avoid matching "resistors" (which contains "or")
+
         boolean isMultiInput = resName.startsWith("gate_") && !resName.contains("not");
 
         if (!isMultiInput) {
-            // For single input gates (NOT, Diodes, Resistors), always center at 50%
             return conn.end.y - 100 + (gateHeight * 0.50f);
         } else {
-            // For multi-input gates, use 30% for first, 70% for second
             if (inputIndex == 0) {
                 return conn.end.y - 100 + (gateHeight * 0.30f);
             } else if (inputIndex == 1) {
                 return conn.end.y - 100 + (gateHeight * 0.70f);
             } else {
-                // Fallback for 3+ inputs
                 return conn.end.y - 100 + (gateHeight * 0.50f);
             }
         }
@@ -639,9 +629,9 @@ public class DiagramView extends View {
 
         Path path = new Path();
         path.moveTo(x1, y1);
-        path.lineTo(midX, y1); // Horizontal to middle
-        path.lineTo(midX, y2); // Vertical to the specific "foot" height
-        path.lineTo(x2, y2); // Horizontal to the gate foot
+        path.lineTo(midX, y1);
+        path.lineTo(midX, y2);
+        path.lineTo(x2, y2);
         canvas.drawPath(path, paint);
         float arrowSize = 15;
         Path arrowPath = new Path();
@@ -722,7 +712,7 @@ public class DiagramView extends View {
             this.y = y;
             this.paint = new Paint();
             this.paint.setColor(Color.BLACK);
-            this.paint.setTextSize(50f); // Base size
+            this.paint.setTextSize(50f);
             this.paint.setAntiAlias(true);
         }
 
@@ -772,24 +762,20 @@ public class DiagramView extends View {
         List<TextInstance> texts;
 
         DiagramState(List<GateInstance> g, List<Connection> c, List<TextInstance> t) {
-            // Deep copy gates
             this.gates = new ArrayList<>();
             for (GateInstance gate : g) {
                 GateInstance copy = new GateInstance(gate.bitmap, gate.x, gate.y, gate.resId);
                 copy.scale = gate.scale;
                 this.gates.add(copy);
             }
-            // Deep copy texts
             this.texts = new ArrayList<>();
             for (TextInstance text : t) {
                 TextInstance copy = new TextInstance(text.text, text.x, text.y);
                 copy.scale = text.scale;
                 this.texts.add(copy);
             }
-            // Copy connections (references to the NEW gate copies)
             this.connections = new ArrayList<>();
             for (Connection conn : c) {
-                // Find the index of the original gates to link the new copies correctly
                 int startIndex = g.indexOf(conn.start);
                 int endIndex = g.indexOf(conn.end);
                 if (startIndex != -1 && endIndex != -1) {
@@ -803,7 +789,6 @@ public class DiagramView extends View {
     }
     public void duplicateGate(GateInstance gate) {
         saveState();
-        // Create a new instance offset slightly from the original
         GateInstance duplicated = new GateInstance(gate.bitmap, gate.x + 50, gate.y + 50, gate.resId);
         duplicated.scale = gate.scale;
         gates.add(duplicated);
@@ -822,12 +807,10 @@ public class DiagramView extends View {
     }
     public void toggleGroup(GateInstance gate) {
         saveState();
-
-        // 1. If the gate is already in a group, REMOVE it from that group (Ungrouping one item)
         List<GateInstance> existingGroup = findGroupFor(gate);
         if (existingGroup != null) {
             existingGroup.remove(gate);
-            // If only 1 item left in group, dissolve the group entirely
+
             if (existingGroup.size() < 2) {
                 groups.remove(existingGroup);
             }
@@ -835,13 +818,10 @@ public class DiagramView extends View {
             return;
         }
 
-        // 2. If we are already dragging or have a "Current" group, add to it
-        // Search if there's an active group nearby or just use the last one created
+
         if (!groups.isEmpty()) {
-            // Add to the most recently modified group
             groups.get(groups.size() - 1).add(gate);
         } else {
-            // No groups exist yet, start a new one with a buffer
             if (!multiSelectBuffer.contains(gate)) {
                 multiSelectBuffer.add(gate);
             }
@@ -868,34 +848,31 @@ public class DiagramView extends View {
             pasteGate();
             return true;
         });
-        // Use the last touch coordinates to show the menu at the finger location
         popup.show();
     }
     public Bitmap getThumbnail() {
-        // 1. Get the area where the components actually are
+
         float[] bbox = getBoundingBox();
-        if (bbox == null) return null; // Empty diagram
+        if (bbox == null) return null;
 
         float diagramWidth = bbox[2] - bbox[0];
         float diagramHeight = bbox[3] - bbox[1];
 
-        // 2. Create a square bitmap for the card (e.g., 300x300)
+
         int thumbSize = 300;
         Bitmap thumb = Bitmap.createBitmap(thumbSize, thumbSize, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(thumb);
         canvas.drawColor(Color.WHITE); // Background
 
-        // 3. Calculate scale to fit the circuit into the 300px box without distorting
+
         float scale = Math.min(thumbSize / diagramWidth, thumbSize / diagramHeight);
 
-        // 4. Center the circuit in the thumbnail
+
         float xOffset = (thumbSize - (diagramWidth * scale)) / 2f;
         float yOffset = (thumbSize - (diagramHeight * scale)) / 2f;
 
         canvas.translate(xOffset, yOffset);
         canvas.scale(scale, scale);
-
-        // 5. Use your EXISTING export logic to draw gates, connections, and text
         drawDiagram(canvas, bbox[0], bbox[1]);
 
         return thumb;

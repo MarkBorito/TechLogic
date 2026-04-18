@@ -89,7 +89,7 @@ public class DiagramActivity extends AppCompatActivity {
                                 break;
                             case 2: diagramView.duplicateGate(gate); break;
                             case 3: diagramView.toggleGroup(gate); break;
-                            case 4: // Lock/Unlock logic
+                            case 4:
                                 gate.isLocked = !gate.isLocked;
                                 String msg = gate.isLocked ? "Component Locked" : "Component Unlocked";
                                 Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
@@ -185,7 +185,6 @@ public class DiagramActivity extends AppCompatActivity {
         layout.setPadding(50, 40, 50, 40);
         final android.widget.SeekBar seekBar = new android.widget.SeekBar(this);
 
-        // Scale from 0.5x to 2.5x (represented as 50 to 250)
         seekBar.setMax(250);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             seekBar.setMin(10);
@@ -199,7 +198,7 @@ public class DiagramActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(android.widget.SeekBar sb, int progress, boolean fromUser) {
                 gate.scale = progress / 1000.0f;
-                diagramView.invalidate(); // Force redraw the canvas with new scale
+                diagramView.invalidate();
             }
             @Override
             public void onStartTrackingTouch(android.widget.SeekBar sb) {}
@@ -227,7 +226,7 @@ public class DiagramActivity extends AppCompatActivity {
             gateList.add(new ShapeItem("XOR", R.drawable.gate_xor, false));
             gateList.add(new ShapeItem("NOT", R.drawable.gate_not, false));
             gateList.add(new ShapeItem("XNOR", R.drawable.gate_xnor, false));
-            // ... add all your gates here
+            //add all the gates here
 
             resistorList = new ArrayList<>();
             resistorList.add(new ShapeItem("220 Resistor", R.drawable.resistors_category, false));
@@ -251,23 +250,23 @@ public class DiagramActivity extends AppCompatActivity {
         private void setupLibrary() {
             initializeComponentData();
             toolRecycler.setLayoutManager(new GridLayoutManager(this, 2));
-            // Set the initial view to show CATEGORIES
+
             shapeAdapter = new ShapeAdapter(categoryList, item -> {
                 if (item.isCategory()) {
-                    // IF USER CLICKS A CATEGORY: Switch the list
+
                     if (item.getName().equals("Logic Gates")) {
                         shapeAdapter.updateList(gateList);
                     } else if (item.getName().equals("Resistors")) {
                         shapeAdapter.updateList(resistorList);
                     } else if (item.getName().equals("Diodes")) {
                         shapeAdapter.updateList(diodeList);
-                    } else if (item.getName().equals("Labels")) { // ADD THIS
+                    } else if (item.getName().equals("Labels")) {
                         shapeAdapter.updateList(labelList);
                     }
                     btnBackToCategories.setVisibility(View.VISIBLE);
                     panelTitle.setText(item.getName());
 
-                    // Add a "Back" button functionality or button UI here if desired
+
                     btnBackToCategories.setVisibility(View.VISIBLE);
                     panelTitle.setText(item.getName());
                 } else {
@@ -288,22 +287,19 @@ public class DiagramActivity extends AppCompatActivity {
 
 private void setupBottomSheet() {
     BottomSheetBehavior<LinearLayout> behavior = BottomSheetBehavior.from(bottomPanel);
-    // 1. Disable fitToContents to enable the Half-Expanded state
+
     behavior.setFitToContents(false);
-    // 2. Set the middle stop point at 50% of the screen
+
     behavior.setHalfExpandedRatio(0.5f);
-    // 3. Ensure the panel doesn't hide completely
+
     behavior.setHideable(false);
     btnExpand.setOnClickListener(v -> {
-        // Step-by-step expansion logic for the button
+
         if (behavior.getState() == BottomSheetBehavior.STATE_COLLAPSED) {
-            // From Bottom -> Middle
             behavior.setState(BottomSheetBehavior.STATE_HALF_EXPANDED);
         } else if (behavior.getState() == BottomSheetBehavior.STATE_HALF_EXPANDED) {
-            // From Middle -> Top
             behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
         } else {
-            // From Top -> Bottom
             behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         }
     });

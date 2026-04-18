@@ -32,17 +32,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-// Inside onCreate, after setContentView
+
         if (getSupportActionBar() != null) {
             getSupportActionBar().setBackgroundDrawable(getResources().getDrawable(R.drawable.header_gradient));
         }
         recyclerView = findViewById(R.id.recyclerView);
-        db = new DatabaseHelper(this); // Initialize SQLite helper
+        db = new DatabaseHelper(this);
 
         list = new ArrayList<>();
-        list.add(new CardItem("", true)); // Add button always first
+        list.add(new CardItem("", true));
 
-        // Load saved cards from database
+
         List<CardItem> savedCards = db.getAllCards();
         list.addAll(savedCards);
 
@@ -50,18 +50,14 @@ public class MainActivity extends AppCompatActivity {
 
 
         adapter = new CardAdapter(list,
-                () -> { // Add button click
+                () -> {
                     String newTitle = generateUniqueTitle();
-
-                    // Save to SQLite
                     db.insertCard(newTitle);
-
-                    // Add to RecyclerView
                     list.add(1, new CardItem(newTitle, false));
                     adapter.notifyItemInserted(1);
                     recyclerView.scrollToPosition(0);
                 },
-                position -> { // Card click
+                position -> {
                     if (position < 0 || position >= list.size()) return;
 
                     CardItem clicked = list.get(position);
@@ -84,7 +80,6 @@ public class MainActivity extends AppCompatActivity {
                     showRenameDialog(clicked.title, position);
                     return true;
                 } else if (id == R.id.menu_export) {
-                    // We will implement export later, for now just a toast
                     exportProject(clicked.title);
                     return true;
                 } else if (id == R.id.menu_delete) {
@@ -95,7 +90,6 @@ public class MainActivity extends AppCompatActivity {
             });
             popup.show();
         });
-        // Add Long Click to Rename
         adapter.setOnCardLongClickListener(position -> {
             if (position < 0 || position >= list.size()) return;
             CardItem clicked = list.get(position);
@@ -112,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // FIXED: Changed 'cardAdapter' to 'adapter'
                 if (adapter != null) {
                     adapter.filter(s.toString());
                 }
@@ -200,13 +193,8 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage("Are you sure you want to delete '" + title + "'?")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     try {
-                        // 1. Delete from Database
                         db.deleteCard(title);
-
-                        // 2. IMPORTANT: You must update the adapter's data
-                        // Calling your existing refresh method
                         refreshList();
-
                         Toast.makeText(this, "Project deleted", Toast.LENGTH_SHORT).show();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -217,21 +205,13 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
     private void exportProject(String title) {
-        // 1. Create a temporary DiagramView
         DiagramView tempView = new DiagramView(this);
-
-        // 2. Load the data from DB into this view
         db.loadDiagram(title, tempView);
-
-        // 3. FORCE MEASURE: This is the missing piece.
-        // We give it a large enough space to "exist" so it can calculate its bounding box.
         tempView.measure(
                 View.MeasureSpec.makeMeasureSpec(2500, View.MeasureSpec.AT_MOST),
                 View.MeasureSpec.makeMeasureSpec(2500, View.MeasureSpec.AT_MOST)
         );
         tempView.layout(0, 0, tempView.getMeasuredWidth(), tempView.getMeasuredHeight());
-
-        // 4. Use the export method
         Bitmap bitmap = tempView.exportToBitmap();
 
         if (bitmap != null) {

@@ -14,15 +14,13 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "techlogic_db";
-    private static final int DB_VERSION = 5; // Incremented to 5 to fix missing image column
-
-    // Cards table (Existing)
+    private static final int DB_VERSION = 5;
     private static final String TABLE_CARDS = "cards";
     private static final String COLUMN_CARD_ID = "id";
     private static final String COLUMN_CARD_TITLE = "title";
     private static final String COLUMN_CARD_IMAGE = "image";
 
-    // Gates table (New)
+
     private static final String TABLE_GATES = "gates";
     private static final String COLUMN_GATE_ID = "gate_id";
     private static final String COLUMN_GATE_CARD_TITLE = "card_title";
@@ -31,14 +29,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_GATE_Y = "y";
     private static final String COLUMN_GATE_SCALE = "scale";
 
-    // Connections table (New)
     private static final String TABLE_CONNECTIONS = "connections";
     private static final String COLUMN_CONN_ID = "conn_id";
     private static final String COLUMN_CONN_CARD_TITLE = "card_title";
     private static final String COLUMN_START_GATE_INDEX = "start_gate_index";
     private static final String COLUMN_END_GATE_INDEX = "end_gate_index";
 
-    // Texts table (New)
     private static final String TABLE_TEXTS = "texts";
     private static final String COLUMN_TEXT_ID = "text_id";
     private static final String COLUMN_TEXT_CARD_TITLE = "card_title";
@@ -128,7 +124,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    // --- Card Methods ---
 
     public long insertCard(String title) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -149,11 +144,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             do {
                 String title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARD_TITLE));
 
-                // 1. GET THE BLOB FROM DATABASE
                 byte[] imageBytes = cursor.getBlob(cursor.getColumnIndexOrThrow(COLUMN_CARD_IMAGE));
 
-                // 2. PASS IT TO THE CONSTRUCTOR
-                // (Ensure your CardItem constructor accepts: String, boolean, byte[])
                 cards.add(new CardItem(title, false, imageBytes));
 
             } while (cursor.moveToNext());
@@ -194,19 +186,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    // --- Diagram Data Methods ---
 
     public void saveDiagram(String cardTitle, List<DiagramView.GateInstance> gates, List<DiagramView.Connection> connections, List<DiagramView.TextInstance> texts, Bitmap thumbnail) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.beginTransaction();
         try {
-            // Clear existing data for this card
             db.delete(TABLE_GATES, COLUMN_GATE_CARD_TITLE + "=?", new String[]{cardTitle});
             db.delete(TABLE_CONNECTIONS, COLUMN_CONN_CARD_TITLE + "=?", new String[]{cardTitle});
             db.delete(TABLE_TEXTS, COLUMN_TEXT_CARD_TITLE + "=?", new String[]{cardTitle}); // Clear old text
 
 
-            // Save Gates
             for (DiagramView.GateInstance gate : gates) {
                 ContentValues values = new ContentValues();
                 values.put(COLUMN_GATE_CARD_TITLE, cardTitle);
@@ -217,7 +206,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 db.insert(TABLE_GATES, null, values);
             }
 
-            // Save Connections
             for (DiagramView.Connection conn : connections) {
                 int startIndex = gates.indexOf(conn.start);
                 int endIndex = gates.indexOf(conn.end);
@@ -231,7 +219,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 }
             }
 
-            // Save Texts
             for (DiagramView.TextInstance textItem : texts) {
                 ContentValues values = new ContentValues();
                 values.put(COLUMN_TEXT_CARD_TITLE, cardTitle);
@@ -271,9 +258,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 float x = gateCursor.getFloat(gateCursor.getColumnIndexOrThrow(COLUMN_GATE_X));
                 float y = gateCursor.getFloat(gateCursor.getColumnIndexOrThrow(COLUMN_GATE_Y));
                 float scale = gateCursor.getFloat(gateCursor.getColumnIndexOrThrow(COLUMN_GATE_SCALE));
-
-
-                // Use a modified GateInstance constructor or setter that accepts resId
                 gates.add(diagramView.createGateFromLoad(resId, x, y, scale));
             } while (gateCursor.moveToNext());
         }
@@ -306,7 +290,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 float y = textCursor.getFloat(textCursor.getColumnIndexOrThrow(COLUMN_TEXT_Y));
                 float scale = textCursor.getFloat(textCursor.getColumnIndexOrThrow(COLUMN_TEXT_SCALE));
 
-                // Create the text instance and set scale
                 DiagramView.TextInstance textInstance = new DiagramView.TextInstance(content, x, y);
                 textInstance.scale = scale;
                 texts.add(textInstance);
